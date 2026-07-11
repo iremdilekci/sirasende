@@ -53,6 +53,27 @@ docker compose up --build -d
 
 `down -v` komutu geliştirme veritabanındaki tüm verileri siler.
 
+## Veritabanı migration ve seed
+
+Backend konteyneri çalışırken migration uygulamak için:
+
+```powershell
+docker compose exec backend alembic upgrade head
+```
+
+Demo işletme ve esnaf kullanıcısını oluşturmak için önce `.env` içindeki
+`SEED_ADMIN_PASSWORD` değerini güvenli bir parola olarak ayarlayın, ardından:
+
+```powershell
+docker compose exec backend python -m app.scripts.seed
+```
+
+Son migration'ı geri almak için:
+
+```powershell
+docker compose exec backend alembic downgrade -1
+```
+
 ## Testler
 
 Backend bağımlılıklarını geliştirme grubu ile kurduktan sonra:
