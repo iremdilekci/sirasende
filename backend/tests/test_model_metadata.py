@@ -38,3 +38,24 @@ def test_admin_username_and_email_are_unique() -> None:
 
     assert ("username",) in unique_columns
     assert ("email",) in unique_columns
+
+
+def test_appointment_active_slot_index_is_declared() -> None:
+    indexes = {idx.name: idx for idx in Appointment.__table__.indexes}
+
+    assert "uq_appointments_active_slot" in indexes
+    idx = indexes["uq_appointments_active_slot"]
+
+    assert idx.unique is True
+    assert [col.name for col in idx.expressions] == [
+        "business_id",
+        "appointment_date",
+        "start_time",
+    ]
+
+    assert idx.dialect_options.get("postgresql", {}).get("where") is not None
+    where_clause = str(idx.dialect_options["postgresql"]["where"])
+    assert "pending" in where_clause
+    assert "confirmed" in where_clause
+    assert "cancelled" not in where_clause
+    assert "completed" not in where_clause

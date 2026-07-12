@@ -5,13 +5,21 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.exceptions import (
+    AppointmentConflictError,
+    BusinessNotFoundError,
+    InvalidAppointmentSlotError,
+    PastAppointmentError,
+)
 from app.repositories.appointment_repository import list_active_appointments_by_date
 from app.repositories.business_repository import (
     get_active_business_by_slug,
     list_active_businesses,
 )
+from app.schemas.appointment import AppointmentCreate, AppointmentOut
 from app.schemas.business import BusinessDetail, BusinessListItem
 from app.schemas.slot import SlotOut
+from app.services.appointment_service import create_appointment
 from app.services.slot_service import (
     ISTANBUL_TIMEZONE,
     generate_daily_slots,
@@ -116,4 +124,62 @@ async def get_business_slots(
     slots = mark_past_slots(slots, query_date)
 
     return slots
+
+
+@router.post(
+    "/businesses/{slug}/appointments",
+    response_model=AppointmentOut,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new pending appointment for a business",
+    responses={
+        201: {"description": "Appointment successfully created with status pending."},
+        400: {"description": "Cannot book in the past, or slot is invalid."},
+        404: {"description": "Business not found or inactive."},
+        409: {"description": "Appointment slot is already booked (conflict)."},
+        422: {"description": "Validation error (extra fields, invalid format, etc.)."},
+    },
+)
+async def create_business_appointment(
+    slug: str,
+    payload: AppointmentCreate,
+    db: AsyncSession = Depends(get_db),
+) -> AppointmentOut:
+    """Create a new pending appointment for an active business on a given date/time slot."""
+    # 1. Fetch active business
+    business = await get_active_business_by_slug(db, slug)
+    if business is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business not found",
+        )
+
+    # 2. Call service transaction function to build, validate, and persist
+    try:
+        appointment = await create_appointment(
+            session=db,
+            business=business,
+            payload=payload,
+        )
+    except BusinessNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business not found",
+        ) from exc
+    except PastAppointmentError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot book appointments in the past",
+        ) from exc
+    except InvalidAppointmentSlotError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid appointment slot",
+        ) from exc
+    except AppointmentConflictError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Appointment slot is already booked",
+        ) from exc
+
+    return appointment
 

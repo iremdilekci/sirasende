@@ -195,3 +195,176 @@ async def test_seed_is_idempotent_and_hashes_password(monkeypatch: pytest.Monkey
     assert business_count == 1
     assert len(admin_users) == 1
     assert admin_users[0].password_hash.startswith("$argon2")
+
+
+async def test_appointment_active_slot_index_behavior() -> None:
+    # Scenario 1: Same business, date, start_time for two pending appointments -> raises IntegrityError
+    async with async_session_factory() as session:
+        b = await _add_business(slug="active-slot-behav-1")
+        session.add(b)
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        a2 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        session.add_all([a1, a2])
+        with pytest.raises(IntegrityError):
+            await session.flush()
+        await session.rollback()
+
+    # Scenario 2: Same slot, pending and confirmed -> raises IntegrityError
+    async with async_session_factory() as session:
+        b = await _add_business(slug="active-slot-behav-2")
+        session.add(b)
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        a2 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.CONFIRMED,
+        )
+        session.add_all([a1, a2])
+        with pytest.raises(IntegrityError):
+            await session.flush()
+        await session.rollback()
+
+    # Scenario 3: First cancelled, second pending -> success
+    async with async_session_factory() as session:
+        b = await _add_business(slug="active-slot-behav-3")
+        session.add(b)
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.CANCELLED,
+        )
+        a2 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        session.add_all([a1, a2])
+        await session.flush()
+        await session.commit()
+
+    # Scenario 4: First completed, second pending -> success
+    async with async_session_factory() as session:
+        b = await _add_business(slug="active-slot-behav-4")
+        session.add(b)
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.COMPLETED,
+        )
+        a2 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        session.add_all([a1, a2])
+        await session.flush()
+        await session.commit()
+
+    # Scenario 5: Same slot, different businesses -> success
+    async with async_session_factory() as session:
+        b1 = await _add_business(slug="active-slot-behav-5a")
+        b2 = await _add_business(slug="active-slot-behav-5b")
+        session.add_all([b1, b2])
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b1.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        a2 = Appointment(
+            business_id=b2.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        session.add_all([a1, a2])
+        await session.flush()
+        await session.commit()
+
+    # Scenario 6: Same business and hour, different dates -> success
+    async with async_session_factory() as session:
+        b = await _add_business(slug="active-slot-behav-6")
+        session.add(b)
+        await session.flush()
+
+        a1 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 1",
+            customer_phone="5550000000",
+            appointment_date=date(2026, 7, 20),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        a2 = Appointment(
+            business_id=b.id,
+            customer_name="Customer 2",
+            customer_phone="5551111111",
+            appointment_date=date(2026, 7, 21),
+            start_time=time(9, 0),
+            end_time=time(9, 30),
+            status=AppointmentStatus.PENDING,
+        )
+        session.add_all([a1, a2])
+        await session.flush()
+        await session.commit()
