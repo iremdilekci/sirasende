@@ -3,7 +3,7 @@ from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, Enum as SQLAlchemyEnum, ForeignKey, String, Text, Time
+from sqlalchemy import CheckConstraint, Date, Enum as SQLAlchemyEnum, ForeignKey, Index, String, Text, Time, text
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +27,14 @@ class Appointment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         CheckConstraint(
             "end_time > start_time",
             name="ck_appointments_time_range",
+        ),
+        Index(
+            "uq_appointments_active_slot",
+            "business_id",
+            "appointment_date",
+            "start_time",
+            unique=True,
+            postgresql_where=text("status IN ('pending', 'confirmed')"),
         ),
     )
 

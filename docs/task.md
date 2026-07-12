@@ -26,17 +26,17 @@
 - [x] Slot üretici mantığı için birim ve entegrasyon testlerinin yazılması (`backend/tests/test_slot_service.py`, `backend/tests/test_business_slots.py`)
 
 ### Gün 6 – Randevu Oluşturma ve Çakışma Engelleme
-- [ ] Randevu Pydantic şemalarının oluşturulması (`backend/app/schemas/appointment.py`)
-  - [ ] `AppointmentCreate` (İstek şeması)
-  - [ ] `AppointmentOut` (Yanıt şeması)
-- [ ] Veritabanı seviyesinde benzersizlik kuralı eklenmesi (Alembic Migration)
-  - [ ] Aktif randevular (`pending` ve `confirmed` durumundakiler) için `(business_id, appointment_date, start_time)` kombinasyonuna `Partial Unique Index` eklenmesi
-- [ ] Randevu oluşturma servisinin yazılması (`backend/app/services/appointment_service.py`)
-  - [ ] Seçilen gün ve saatin uygunluk kontrolü
-  - [ ] İşlem (transaction) yönetimiyle çakışma durumunda hata yönetimi
-- [ ] Randevu oluşturma uç noktasının kodlanması
-  - [ ] `POST /api/v1/businesses/{slug}/appointments` (Eş zamanlı istekte çakışma olursa `409 Conflict`)
-- [ ] Eş zamanlı randevu oluşturma entegrasyon testlerinin yazılması
+- [x] Randevu Pydantic şemalarının oluşturulması (`backend/app/schemas/appointment.py`)
+  - [x] `AppointmentCreate` (İstek şeması)
+  - [x] `AppointmentOut` (Yanıt şeması)
+- [x] Veritabanı seviyesinde benzersizlik kuralı eklenmesi (Alembic Migration)
+  - [x] Aktif randevular (`pending` ve `confirmed` durumundakiler) için `(business_id, appointment_date, start_time)` kombinasyonuna `Partial Unique Index` eklenmesi
+- [x] Randevu oluşturma servisinin yazılması (`backend/app/services/appointment_service.py`)
+  - [x] Seçilen gün ve saatin uygunluk kontrolü
+  - [x] İşlem (transaction) yönetimiyle çakışma durumunda hata yönetimi
+- [x] Randevu oluşturma uç noktasının kodlanması
+  - [x] `POST /api/v1/businesses/{slug}/appointments` (Eş zamanlı istekte çakışma olursa `409 Conflict`)
+- [x] Eş zamanlı randevu oluşturma entegrasyon testlerinin yazılması
 
 ---
 
