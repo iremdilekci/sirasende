@@ -16,14 +16,14 @@
 - [x] İşletme API birim ve entegrasyon testlerinin yazılması (`backend/tests/test_businesses.py`)
 
 ### Gün 5 – Dinamik Slot Sistemi
-- [ ] Slot üretici servisinin yazılması (`backend/app/services/slot_service.py`)
-  - [ ] Mesai saatlerine göre 30, 45, 60 dakikalık dilimler oluşturulması
-  - [ ] Mesai bitiş saatini aşan slotların filtrelenmesi
-  - [ ] Geçmiş günlerin ve bugün içindeki geçmiş saatlerin pasif (`available: false`) yapılması
-  - [ ] Veritabanından o günün aktif (`pending`, `confirmed`) randevularının çekilerek çakışan slotların rezerve (`available: false`) olarak işaretlenmesi
-- [ ] Slot uç noktasının kodlanması (`backend/app/api/v1/bookings.py`)
-  - [ ] `GET /api/v1/businesses/{slug}/slots?date=YYYY-MM-DD`
-- [ ] Slot üretici mantığı için birim testlerinin yazılması
+- [x] Slot üretici servisinin yazılması (`backend/app/services/slot_service.py`)
+  - [x] Mesai saatlerine göre 30, 45, 60 dakikalık dilimler oluşturulması
+  - [x] Mesai bitiş saatini aşan slotların filtrelenmesi
+  - [x] Geçmiş günlerin ve bugün içindeki geçmiş saatlerin pasif (`available: false`) yapılması
+  - [x] Veritabanından o günün aktif (`pending`, `confirmed`) randevularının çekilerek çakışan slotların rezerve (`available: false`) olarak işaretlenmesi
+- [x] Slot uç noktasının kodlanması (`backend/app/api/v1/businesses.py`)
+  - [x] `GET /api/v1/businesses/{slug}/slots?date=YYYY-MM-DD`
+- [x] Slot üretici mantığı için birim ve entegrasyon testlerinin yazılması (`backend/tests/test_slot_service.py`, `backend/tests/test_business_slots.py`)
 
 ### Gün 6 – Randevu Oluşturma ve Çakışma Engelleme
 - [ ] Randevu Pydantic şemalarının oluşturulması (`backend/app/schemas/appointment.py`)
