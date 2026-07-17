@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,6 +14,12 @@ class Settings(BaseSettings):
     postgres_password: str
     postgres_host: str = "localhost"
     postgres_port: int = 5432
+
+    jwt_secret_key: str = Field(..., min_length=32)
+
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",

@@ -43,12 +43,12 @@
 ## Sprint 2 – Esnaf API’leri ve Mobil Temel
 
 ### Gün 7 – JWT Giriş Sistemi
-- [ ] Şifre kontrolü ve JWT işlemleri için güvenlik yardımcısının yazılması (`backend/app/core/security.py`)
-- [ ] Giriş Pydantic şemalarının hazırlanması (`backend/app/schemas/auth.py`)
-- [ ] Giriş uç noktasının kodlanması (`backend/app/api/v1/auth.py`)
-  - [ ] `POST /api/v1/auth/login`
-- [ ] Giriş etmiş kullanıcıyı doğrulayan `get_current_user` bağımlılığının yazılması (`backend/app/api/deps.py`)
-- [ ] Giriş sistemi için testlerin yazılması
+- [x] Şifre kontrolü ve JWT işlemleri için güvenlik yardımcısının yazılması (`backend/app/core/security.py`)
+- [x] Giriş Pydantic şemalarının hazırlanması (`backend/app/schemas/auth.py`)
+- [x] Giriş uç noktasının kodlanması (`backend/app/api/v1/auth.py`)
+  - [x] `POST /api/v1/auth/login`
+- [x] Giriş etmiş kullanıcıyı doğrulayan `get_current_user` bağımlılığının yazılması (`backend/app/api/deps.py`)
+- [x] Giriş sistemi için testlerin yazılması
 
 ### Gün 8 – Esnaf Randevu Yönetimi
 - [ ] Esnaf randevu yönetim uç noktalarının kodlanması (`backend/app/api/v1/admin_appointments.py`)
