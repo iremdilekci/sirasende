@@ -1,89 +1,239 @@
-# SıraSende
+# 🚀 SıraSende
 
-Mobil öncelikli randevu yönetim sistemi.
+SıraSende, kuaför, berber, güzellik merkezi ve benzeri işletmeler için geliştirilen modern bir çevrim içi randevu yönetim platformudur.
 
-## Teknolojiler
+Proje; FastAPI, PostgreSQL ve Flutter tabanlı, ölçeklenebilir bir mimariyle geliştirilmektedir.
+
+> **Project Status:** 🚧 Active Development (Sprint 1 Completed)
+
+---
+
+# ✨ Features
+
+## Sprint 1
+
+- ✅ FastAPI Backend
+- ✅ PostgreSQL Integration
+- ✅ SQLAlchemy 2.x Async ORM
+- ✅ Alembic Migration System
+- ✅ Docker Development Environment
+- ✅ Health Check Endpoints
+- ✅ Business Listing API
+- ✅ Business Detail API
+- ✅ Dynamic Slot Generation
+- ✅ Slot Availability API
+- ✅ Appointment Creation API
+- ✅ Race Condition Protection
+- ✅ PostgreSQL Partial Unique Index
+- ✅ OpenAPI Documentation
+- ✅ Unit & Integration Test Suite
+
+---
+
+# 🏗 Architecture
+
+```
+Flutter Mobile
+        │
+        ▼
+FastAPI REST API
+        │
+        ▼
+ Service Layer
+        │
+        ▼
+ Repository Layer
+        │
+        ▼
+ PostgreSQL
+```
+
+---
+
+# 🛠 Tech Stack
+
+### Backend
+
+- Python 3.13
+- FastAPI
+- SQLAlchemy 2.x
+- asyncpg
+- Alembic
+- PostgreSQL
+- Pydantic v2
+
+### Infrastructure
+
+- Docker
+- Docker Compose
+
+### Testing
+
+- Pytest
+- HTTPX
+- AsyncIO
+
+### Mobile (Planned)
 
 - Flutter
-- FastAPI
-- PostgreSQL
-- Docker
 
-## Repository yapısı
+---
 
-```text
+# 📂 Project Structure
+
+```
 backend/
-mobile/
-web/
+│
+├── app/
+│   ├── api/
+│   ├── core/
+│   ├── models/
+│   ├── repositories/
+│   ├── schemas/
+│   ├── services/
+│   └── scripts/
+│
+├── alembic/
+├── tests/
+│
 docs/
 ```
 
-## Yerel geliştirme kurulumu
+---
 
-1. `.env.example` dosyasını `.env` adıyla kopyalayın.
-2. `.env` içindeki örnek parolayı güçlü ve yalnızca yerelde kullanılan bir parolayla değiştirin.
-3. Servisleri başlatın:
+# 📊 Sprint Progress
 
-```powershell
-docker compose up --build -d
+| Sprint | Status |
+|----------|--------|
+| Sprint 1 | ✅ Completed |
+| Sprint 2 | 🔄 Planned |
+| Sprint 3 | ⏳ Planned |
+| Sprint 4 | ⏳ Planned |
+
+---
+
+# 🧪 Test Status
+
+Current Result
+
+```
+124 Passed
+0 Failed
+0 Skipped
 ```
 
-Uygulama sağlık kontrolleri:
+Test Categories
 
-```text
-http://localhost:8000/health
-http://localhost:8000/health/database
+- Unit Tests
+- Integration Tests
+- PostgreSQL Tests
+- HTTP Endpoint Tests
+- Concurrency Tests
+
+---
+
+# 🔐 Concurrency Protection
+
+SıraSende aynı zaman dilimine birden fazla randevu oluşturulmasını PostgreSQL Partial Unique Index kullanarak engeller.
+
+```
+pending
+confirmed
 ```
 
-Yerel Windows ortamında backend doğrudan çalıştırılırsa `POSTGRES_HOST=localhost`
-olmalıdır. Docker Compose, backend konteyneri için bu değeri otomatik olarak `db`
-şeklinde değiştirir.
+durumundaki kayıtlar aynı slotu paylaşamaz.
 
-## PostgreSQL parola hatasını giderme
+Race condition senaryoları gerçek PostgreSQL üzerinde test edilmiştir.
 
-PostgreSQL ilk başlatıldığında kullanıcı ve parola bilgilerini kalıcı Docker volume'una
-yazar. Daha sonra yalnızca `.env` dosyasındaki parolayı değiştirmek mevcut veritabanı
-kullanıcısının parolasını değiştirmez. Henüz korunması gereken veri yoksa geliştirme
-veritabanını yeniden oluşturun:
+---
 
-```powershell
-docker compose down -v
-docker compose up --build -d
+# 📖 API
+
+### Business
+
+```
+GET /api/v1/businesses
 ```
 
-`down -v` komutu geliştirme veritabanındaki tüm verileri siler.
-
-## Veritabanı migration ve seed
-
-Backend konteyneri çalışırken migration uygulamak için:
-
-```powershell
-docker compose exec backend alembic upgrade head
+```
+GET /api/v1/businesses/{slug}
 ```
 
-Demo işletme ve esnaf kullanıcısını oluşturmak için önce `.env` içindeki
-`SEED_ADMIN_PASSWORD` değerini güvenli bir parola olarak ayarlayın, ardından:
+### Slots
 
-```powershell
-docker compose exec backend python -m app.scripts.seed
+```
+GET /api/v1/businesses/{slug}/slots
 ```
 
-Son migration'ı geri almak için:
+### Appointments
 
-```powershell
-docker compose exec backend alembic downgrade -1
+```
+POST /api/v1/businesses/{slug}/appointments
 ```
 
-## Testler
+OpenAPI
 
-Backend bağımlılıklarını geliştirme grubu ile kurduktan sonra:
-
-```powershell
-python -m pip install -e ".\backend[dev]"
-python -m pytest .\backend\tests
+```
+http://localhost:8000/docs
 ```
 
-## Güvenlik
+---
 
-Gerçek `.env`, `.git` ve `backend/.venv` klasörlerini ZIP arşivlerine eklemeyin.
-`.env` içinde bulunan bir parola daha önce paylaşılmışsa parolayı değiştirin.
+# 🚀 Local Development
+
+```bash
+git clone https://github.com/iremdilekci/sirasende.git
+
+cd sirasende
+
+docker compose up -d
+
+cd backend
+
+alembic upgrade head
+
+python -m app.scripts.seed
+```
+
+Run Tests
+
+```bash
+pytest
+```
+
+---
+
+# 📅 Roadmap
+
+## Sprint 2
+
+- JWT Authentication
+- Authorization
+- Customer Accounts
+- Admin APIs
+
+## Sprint 3
+
+- Flutter Mobile App
+- Booking Flow
+- Business Dashboard
+
+## Sprint 4
+
+- Notifications
+- Analytics
+- Reporting
+
+---
+
+# 👩💻 Author
+
+**İrem Dilekçi**
+
+Software Engineering Student
+
+---
+
+# 📄 License
+
+This project is developed for educational and portfolio purposes.

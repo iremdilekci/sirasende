@@ -1,0 +1,1135 @@
+# SıraSende – Güncel MVP Sprint Planı
+
+## 1. Proje Özeti
+
+**SıraSende**, müşterilerin üyelik oluşturmadan işletmelerden randevu almasını, işletme sahibinin ise giriş yaparak gelen randevuları yönetmesini sağlayan mobil öncelikli bir randevu uygulamasıdır.
+
+Proje yaklaşık **2,5 haftalık geliştirme süresi** içerisinde tamamlanacaktır.
+
+Ana hedefler:
+
+* Flutter ile Android ve iOS uyumlu mobil uygulama geliştirmek
+* FastAPI ile ortak ve bağımsız REST API oluşturmak
+* PostgreSQL ile randevu ve işletme verilerini yönetmek
+* Aynı saat için birden fazla randevu oluşmasını engellemek
+* İşletme sahibinin randevuları onaylayabilmesini sağlamak
+* Vakit kalırsa Google Calendar entegrasyonu ve web arayüzü eklemek
+
+---
+
+# 2. Kesin Teknoloji Seçimleri
+
+## Backend
+
+* Python 3.11+
+* FastAPI
+* SQLAlchemy 2.x
+* PostgreSQL
+* Alembic
+* Pydantic
+* JWT Authentication
+* Pytest
+* Docker
+* Docker Compose
+
+## Mobil Uygulama
+
+* Flutter
+* Dart
+* Riverpod
+* GoRouter
+* Dio
+* Flutter Secure Storage
+* Intl
+
+## Web Uygulaması
+
+Web uygulaması bonus kapsamındadır.
+
+* React
+* TypeScript
+* Tailwind CSS
+* Axios veya Fetch API
+
+## Dış Entegrasyon
+
+* Google Calendar API
+* Google OAuth 2.0
+
+## Geliştirme Araçları
+
+* Visual Studio Code
+* Android Studio
+* Docker Desktop
+* DBeaver
+* Postman
+* Git
+* GitHub
+* GitHub Projects
+* Figma
+* GitHub Copilot
+* ChatGPT
+
+---
+
+# 3. Platform Hedefleri
+
+Mobil uygulama Flutter ile geliştirileceği için ortak kod tabanı:
+
+* Android
+* iOS
+
+platformlarında çalışacak şekilde hazırlanacaktır.
+
+Ana geliştirme ve test işlemleri Android üzerinde yapılacaktır.
+
+iOS uygulaması için:
+
+* Flutter kodları iOS uyumlu yazılacak
+* iOS klasörü korunacak
+* Platforma özel paketler dikkatli seçilecek
+* Son iOS derleme ve test işlemi için macOS ve Xcode gerekebilecektir
+
+Web tarafı için backend baştan bağımsız REST API olarak tasarlanacaktır. Bu nedenle mobil tamamlandıktan sonra React web arayüzü aynı API’yi kullanabilecektir.
+
+---
+
+# 4. MVP Kapsamı
+
+## Kesin Yapılacak Özellikler
+
+### Müşteri Tarafı
+
+* Müşteri rolünü seçme
+* İşletmeleri listeleme
+* İşletme detaylarını görüntüleme
+* Tarih seçme
+* Boş, dolu ve geçmiş slotları görüntüleme
+* Ad, telefon ve not bilgisi girme
+* Randevu oluşturma
+* Randevu başarılı ekranı
+* Aynı slot dolduğunda hata mesajı gösterme
+
+### Esnaf Tarafı
+
+* Esnaf rolünü seçme
+* Kullanıcı adı veya e-posta ve şifre ile giriş
+* JWT tabanlı oturum yönetimi
+* Gelen randevuları listeleme
+* Randevuyu onaylama
+* Randevuyu iptal etme
+* Randevuyu tamamlandı olarak işaretleme
+* Çıkış yapma
+
+### Backend Tarafı
+
+* İşletme listeleme
+* İşletme detaylarını getirme
+* Dinamik slot oluşturma
+* Geçmiş slot kontrolü
+* Dolu slot kontrolü
+* Randevu oluşturma
+* Randevu çakışmasını engelleme
+* JWT kimlik doğrulama
+* Randevu durumunu güncelleme
+* Migration yönetimi
+* Seed verisi
+* Temel otomatik testler
+* Docker ile geliştirme ortamı
+
+---
+
+# 5. Bonus Özellikler
+
+Aşağıdaki özellikler yalnızca ana mobil MVP tamamen bittikten sonra yapılacaktır:
+
+## Bonus 1 – Google Calendar
+
+* Google hesabını bağlama
+* OAuth 2.0 yetkilendirmesi
+* Access token ve refresh token saklama
+* Onaylanan randevuyu Google Calendar’a ekleme
+* Google Calendar etkinlik kimliğini veritabanına kaydetme
+
+## Bonus 2 – Web Müşteri Arayüzü
+
+* İşletmeleri listeleme
+* İşletme detayını görüntüleme
+* Tarih seçme
+* Slot seçme
+* Randevu oluşturma
+* Başarı ekranı
+
+Web tarafında ilk sürümde esnaf paneli yapılmayacaktır.
+
+---
+
+# 6. MVP Dışında Tutulan Özellikler
+
+Bu geliştirme sürecinde aşağıdakiler yapılmayacaktır:
+
+* Müşteri üyeliği
+* Çoklu çalışan yönetimi
+* Çoklu şube yönetimi
+* Online ödeme
+* SMS bildirimi
+* WhatsApp entegrasyonu
+* Push notification
+* Kupon sistemi
+* Yorum ve puanlama
+* Randevu düzenleme
+* Esnaf kayıt olma ekranı
+* Gelişmiş raporlama
+* Yönetici süper admin paneli
+* Harita entegrasyonu
+
+---
+
+# 7. Repository Yapısı
+
+Proje tek GitHub repository içerisinde tutulacaktır.
+
+```text
+sirasende/
+├── backend/
+├── mobile/
+├── web/
+├── docs/
+├── .github/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+└── README.md
+```
+
+Başlangıçta `web/` klasöründe yalnızca web uygulamasının bonus kapsamda olduğunu belirten bir README bulunabilir.
+
+---
+
+# 8. Backend Klasör Yapısı
+
+```text
+backend/
+├── app/
+│   ├── main.py
+│   ├── api/
+│   │   ├── deps.py
+│   │   └── v1/
+│   │       ├── router.py
+│   │       ├── auth.py
+│   │       ├── businesses.py
+│   │       ├── bookings.py
+│   │       └── admin_appointments.py
+│   ├── core/
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── security.py
+│   │   └── exceptions.py
+│   ├── models/
+│   │   ├── business.py
+│   │   ├── appointment.py
+│   │   └── admin_user.py
+│   ├── schemas/
+│   │   ├── auth.py
+│   │   ├── business.py
+│   │   └── appointment.py
+│   ├── repositories/
+│   │   ├── business_repository.py
+│   │   └── appointment_repository.py
+│   ├── services/
+│   │   ├── auth_service.py
+│   │   ├── slot_service.py
+│   │   ├── appointment_service.py
+│   │   └── google_calendar_service.py
+│   └── integrations/
+│       └── google_calendar.py
+├── alembic/
+├── tests/
+├── alembic.ini
+├── Dockerfile
+├── pyproject.toml
+└── .env.example
+```
+
+---
+
+# 9. Mobil Klasör Yapısı
+
+```text
+mobile/
+├── lib/
+│   ├── main.dart
+│   ├── app.dart
+│   ├── core/
+│   │   ├── constants/
+│   │   ├── error/
+│   │   ├── network/
+│   │   ├── router/
+│   │   ├── storage/
+│   │   ├── theme/
+│   │   └── widgets/
+│   ├── features/
+│   │   ├── role_selection/
+│   │   ├── business_list/
+│   │   ├── business_detail/
+│   │   ├── booking/
+│   │   ├── admin_auth/
+│   │   └── admin_appointments/
+│   └── shared/
+│       ├── models/
+│       └── providers/
+├── android/
+├── ios/
+├── test/
+└── pubspec.yaml
+```
+
+---
+
+# 10. Markdown-Driven Development Yapısı
+
+```text
+docs/
+├── 00-Project-Overview.md
+├── 01-Scope.md
+├── 02-Architecture.md
+├── 03-Database.md
+├── 04-API.md
+├── 05-Business-Rules.md
+├── 06-Mobile-Screens.md
+├── 07-Git-Workflow.md
+├── 08-Test-Plan.md
+├── 09-Deployment.md
+├── 10-Sprint-Plan.md
+└── Decisions/
+    ├── ADR-001-Flutter.md
+    ├── ADR-002-Monorepo.md
+    └── ADR-003-Booking-Conflict.md
+```
+
+Geliştirme akışı:
+
+```text
+Issue
+↓
+Markdown dokümanı
+↓
+Feature branch
+↓
+Kodlama
+↓
+Test
+↓
+Pull request
+↓
+Develop dalına merge
+```
+
+---
+
+# 11. Güncel Sprint Planı
+
+Toplam süre yaklaşık 15 aktif geliştirme günü olarak planlanmıştır.
+
+---
+
+## Sprint 0 – Proje Hazırlığı
+
+### Gün 1 – Repository ve Dokümantasyon
+
+Yapılacaklar:
+
+* GitHub repository oluşturma
+* GitHub Project panosu oluşturma
+* `main` ve `develop` dallarını oluşturma
+* Monorepo klasör yapısını oluşturma
+* Backend, mobile, web ve docs klasörlerini açma
+* `.gitignore` oluşturma
+* `.env.example` oluşturma
+* Proje kapsamını yazma
+* Teknik kararları dokümante etme
+* İlk GitHub issue’larını oluşturma
+* İlk temiz commit’i atma
+
+Gün sonu çıktısı:
+
+* Repository düzenli biçimde oluşturulmuş olacak
+* Proje kapsamı belli olacak
+* Sprint görevleri GitHub Projects üzerinde görülecek
+
+Örnek commit:
+
+```text
+chore: initialize SiraSende monorepo structure
+```
+
+---
+
+# Sprint 1 – Backend ve PostgreSQL Temeli
+
+## Gün 2 – FastAPI ve Docker Kurulumu
+
+Yapılacaklar:
+
+* Python sanal ortam oluşturma
+* FastAPI projesini başlatma
+* PostgreSQL Docker servisini oluşturma
+* Docker Compose dosyasını hazırlama
+* SQLAlchemy async bağlantısını kurma
+* Ortam değişkenlerini ayarlama
+* Uygulama başlangıç dosyasını oluşturma
+* Health endpoint yazma
+
+Endpoint:
+
+```http
+GET /health
+```
+
+Beklenen yanıt:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+Gün sonu çıktısı:
+
+* FastAPI çalışacak
+* PostgreSQL konteyneri ayağa kalkacak
+* Backend veritabanına bağlanabilecek
+
+---
+
+## Gün 3 – Veritabanı Modelleri ve Migration
+
+Yapılacaklar:
+
+* Business modeli
+* Appointment modeli
+* AdminUser modeli
+* Model ilişkileri
+* UUID yapısı
+* Appointment status alanı
+* Alembic kurulumu
+* İlk migration
+* Seed script
+* Örnek işletme kaydı
+* Örnek esnaf hesabı
+
+Gün sonu çıktısı:
+
+* Veritabanı tabloları oluşacak
+* Migration çalışacak
+* Test için örnek işletme ve esnaf bulunacak
+
+---
+
+## Gün 4 – İşletme API’leri
+
+Yapılacaklar:
+
+* Business Pydantic şemaları
+* İşletmeleri listeleme
+* İşletme detayını getirme
+* Slug kontrolü
+* Bulunamayan işletme için 404 yanıtı
+* Ortak hata yanıt yapısı
+* Postman testleri
+
+Endpoint’ler:
+
+```http
+GET /api/v1/businesses
+GET /api/v1/businesses/{slug}
+```
+
+Gün sonu çıktısı:
+
+* Mobil uygulamanın kullanacağı işletme verileri API üzerinden alınabilecek
+
+---
+
+## Gün 5 – Dinamik Slot Sistemi
+
+Yapılacaklar:
+
+* 30 dakikalık slot üretimi
+* 45 dakikalık slot üretimi
+* 60 dakikalık slot üretimi
+* Mesai başlangıç ve bitiş saatlerini kullanma
+* Bitiş saatini aşan slotları oluşturmama
+* Geçmiş gün kontrolü
+* Bugünün geçmiş saatlerini pasif yapma
+* Pending randevuları dolu sayma
+* Confirmed randevuları dolu sayma
+* Cancelled randevuları boş sayma
+* Slot servisi için birim testleri
+
+Endpoint:
+
+```http
+GET /api/v1/businesses/{slug}/slots?date=YYYY-MM-DD
+```
+
+Örnek yanıt:
+
+```json
+[
+  {
+    "start_time": "09:00",
+    "end_time": "09:30",
+    "available": true,
+    "reason": null
+  },
+  {
+    "start_time": "09:30",
+    "end_time": "10:00",
+    "available": false,
+    "reason": "booked"
+  }
+]
+```
+
+Gün sonu çıktısı:
+
+* Seçilen tarihe göre dinamik slot listesi oluşturulabilecek
+
+---
+
+## Gün 6 – Randevu Oluşturma ve Çakışma Engelleme
+
+Yapılacaklar:
+
+* Randevu oluşturma şeması
+* Telefon doğrulaması
+* İşletme kontrolü
+* Tarih kontrolü
+* Saat kontrolü
+* Transaction yapısı
+* Çakışma kontrolü
+* Veritabanı seviyesinde partial unique index
+* Aynı slot için ikinci isteğe `409 Conflict` dönme
+* Eş zamanlı istek testi
+* Hatalı randevu testleri
+
+Endpoint:
+
+```http
+POST /api/v1/businesses/{slug}/appointments
+```
+
+Gün sonu çıktısı:
+
+* Müşteri API üzerinden güvenli biçimde randevu oluşturabilecek
+* Aynı saate ikinci aktif randevu eklenemeyecek
+
+Sprint 1 tamamlanma ölçütü:
+
+* Postman üzerinden işletme listelenebilecek
+* Slotlar alınabilecek
+* Randevu oluşturulabilecek
+* Aynı slot iki kez rezerve edilemeyecek
+
+---
+
+# Sprint 2 – Esnaf API’leri ve Mobil Temel
+
+## Gün 7 – JWT Giriş Sistemi
+
+Yapılacaklar:
+
+* Şifre hashleme
+* JWT access token oluşturma
+* Login şeması
+* Kullanıcı doğrulama
+* Korumalı endpoint bağımlılığı
+* Hatalı giriş yanıtları
+* Login testleri
+
+Endpoint:
+
+```http
+POST /api/v1/auth/login
+```
+
+Gün sonu çıktısı:
+
+* Esnaf giriş yapabilecek
+* Korunan endpoint’lere token ile erişilebilecek
+
+---
+
+## Gün 8 – Esnaf Randevu Yönetimi
+
+Yapılacaklar:
+
+* Esnafın randevularını listeleme
+* Tarihe göre sıralama
+* Randevu durumunu güncelleme
+* Geçersiz durum geçişlerini engelleme
+* Yetkisiz erişime 401 dönme
+* Başka işletmenin verisine erişimi engelleme
+
+Endpoint’ler:
+
+```http
+GET /api/v1/admin/appointments
+PATCH /api/v1/admin/appointments/{id}/status
+```
+
+İzin verilen durum geçişleri:
+
+```text
+pending → confirmed
+pending → cancelled
+confirmed → cancelled
+confirmed → completed
+```
+
+Gün sonu çıktısı:
+
+* Backend tarafındaki ana MVP tamamlanmış olacak
+
+---
+
+## Gün 9 – Flutter Proje Temeli
+
+Yapılacaklar:
+
+* Flutter projesini oluşturma
+* Android çalıştırma testi
+* iOS klasörünü koruma
+* Riverpod kurulumu
+* GoRouter kurulumu
+* Dio kurulumu
+* Tema oluşturma
+* Ortak buton ve form bileşenleri
+* API base URL yapılandırması
+* Hata yakalama altyapısı
+* Loading ve empty state bileşenleri
+
+Gün sonu çıktısı:
+
+* Flutter uygulaması açılacak
+* Sayfa yönlendirme sistemi çalışacak
+* Backend bağlantısına hazır olacak
+
+---
+
+## Gün 10 – Rol ve İşletme Ekranları
+
+Yapılacaklar:
+
+* Açılış ekranı
+* Müşteri ve esnaf rol seçimi
+* İşletme listeleme ekranı
+* İşletme kartı
+* API’den işletmeleri çekme
+* İşletme detay ekranı
+* Çalışma saatlerini gösterme
+* Hata ve boş liste durumları
+
+Gün sonu çıktısı:
+
+* Kullanıcı işletmeleri gerçek backend verisiyle görebilecek
+
+---
+
+## Gün 11 – Tarih ve Slot Seçimi
+
+Yapılacaklar:
+
+* Tarih seçici
+* Geçmiş tarihleri engelleme
+* Slot API bağlantısı
+* Boş slot görünümü
+* Dolu slot görünümü
+* Geçmiş slot görünümü
+* Seçili slot durumu
+* Riverpod ile ekran state yönetimi
+* Yenileme ve hata durumları
+
+Gün sonu çıktısı:
+
+* Müşteri tarih ve uygun saat seçebilecek
+
+Sprint 2 tamamlanma ölçütü:
+
+* Mobil uygulama backend’e bağlanacak
+* İşletmeler listelenecek
+* İşletme detayı açılacak
+* Tarih ve slotlar görüntülenecek
+
+---
+
+# Sprint 3 – Mobil Randevu ve Esnaf Yönetimi
+
+## Gün 12 – Randevu Formu
+
+Yapılacaklar:
+
+* Müşteri adı alanı
+* Telefon alanı
+* Not alanı
+* Form doğrulama
+* Seçilen tarih ve saati gösterme
+* Randevu oluşturma isteği
+* Başarı ekranı
+* Hata ekranı
+* Slot çakışmasında kullanıcıya açıklayıcı mesaj gösterme
+* İşlem sonrası slot listesini yenileme
+
+Gün sonu çıktısı:
+
+* Müşteri mobil uygulamadan randevu oluşturabilecek
+
+---
+
+## Gün 13 – Esnaf Giriş Ekranı
+
+Yapılacaklar:
+
+* Esnaf giriş formu
+* Kullanıcı adı veya e-posta alanı
+* Şifre alanı
+* Login API bağlantısı
+* JWT saklama
+* Flutter Secure Storage kullanımı
+* Oturum kontrolü
+* Yetkisiz kullanıcıyı login ekranına yönlendirme
+* Çıkış yapma
+
+Gün sonu çıktısı:
+
+* Esnaf mobil uygulamaya güvenli biçimde giriş yapabilecek
+
+---
+
+## Gün 14 – Mobil Esnaf Randevu Paneli
+
+Yapılacaklar:
+
+* Randevu listeleme ekranı
+* Randevu kartı
+* Müşteri adı
+* Telefon numarası
+* Tarih ve saat
+* Not bilgisi
+* Durum etiketi
+* Onaylama butonu
+* İptal etme butonu
+* Tamamlandı butonu
+* Durum değişikliğinde listeyi yenileme
+* Hata durumlarını gösterme
+
+Gün sonu çıktısı:
+
+* Esnaf mobil uygulamadan randevuları yönetebilecek
+
+---
+
+## Gün 15 – Uçtan Uca Test ve Düzeltmeler
+
+Yapılacaklar:
+
+* Müşteri akışını baştan sona test etme
+* Esnaf akışını baştan sona test etme
+* Aynı anda randevu alma testi
+* Hatalı giriş testi
+* Geçmiş tarih testi
+* Dolu slot testi
+* Form doğrulama testi
+* Android gerçek cihaz testi
+* Ekran taşmalarını düzeltme
+* Responsive düzenlemeler
+* Loading ekranlarını düzeltme
+* Hata mesajlarını düzenleme
+* Gereksiz kodları temizleme
+
+Sprint 3 tamamlanma ölçütü:
+
+* Müşteri randevu alabilecek
+* Esnaf randevuyu görebilecek
+* Esnaf randevuyu onaylayabilecek
+* Çakışan randevu oluşturulamayacak
+* Android üzerinde ana akış sorunsuz çalışacak
+
+---
+
+# Sprint 4 – Bonus ve Teslim Hazırlığı
+
+## Gün 16 – Google OAuth
+
+Ana MVP tamamen bittiyse yapılacaktır.
+
+Yapılacaklar:
+
+* Google Cloud projesi oluşturma
+* Calendar API etkinleştirme
+* OAuth client oluşturma
+* Google yetkilendirme endpoint’i
+* Callback endpoint’i
+* Access token alma
+* Refresh token alma
+* Token’ları güvenli biçimde saklama
+* Token yenileme işlemi
+
+Endpoint’ler:
+
+```http
+GET /api/v1/admin/auth/google
+GET /api/v1/admin/auth/google/callback
+```
+
+Gün sonu çıktısı:
+
+* Esnaf Google hesabını sisteme bağlayabilecek
+
+---
+
+## Gün 17 – Google Calendar veya Web Bonus
+
+### Seçenek A – Google Calendar Tamamlama
+
+* Onaylanan randevuyu takvime ekleme
+* Etkinlik başlığı oluşturma
+* Başlangıç ve bitiş saatlerini gönderme
+* Müşteri bilgisini açıklamaya ekleme
+* Google event ID kaydetme
+* Tekrar etkinlik oluşturmama
+* Calendar hatasında randevu işlemini bozmama
+
+### Seçenek B – React Web Müşteri Arayüzü
+
+Google Calendar erken tamamlandıysa:
+
+* React ve TypeScript projesi oluşturma
+* Tailwind kurulumu
+* İşletme listeleme
+* İşletme detay ekranı
+* Tarih ve slot seçimi
+* Randevu formu
+* Backend CORS ayarları
+
+Öncelik sırası:
+
+```text
+1. Mobil MVP
+2. Google Calendar
+3. Web müşteri arayüzü
+```
+
+---
+
+## Gün 18 – Teslim ve Sunum Hazırlığı
+
+Yapılacaklar:
+
+* README düzenleme
+* Proje açıklaması
+* Teknik yığın
+* Kurulum adımları
+* Ortam değişkenleri açıklaması
+* Docker çalıştırma adımları
+* Backend çalıştırma adımları
+* Flutter çalıştırma adımları
+* API endpoint listesi
+* Veritabanı diyagramı
+* Uygulama ekran görüntüleri
+* Postman ekran görüntüleri
+* GitHub commit geçmişini kontrol etme
+* Açık issue’ları kapatma
+* Son test
+* Release etiketi oluşturma
+* Demo senaryosu hazırlama
+* Sunum hazırlama
+
+Örnek release etiketi:
+
+```text
+v1.0.0-mvp
+```
+
+---
+
+# 12. Git Çalışma Düzeni
+
+## Ana Dallar
+
+```text
+main
+develop
+```
+
+## Görev Dalları
+
+```text
+feature/*
+fix/*
+docs/*
+test/*
+chore/*
+```
+
+Örnek dallar:
+
+```text
+feature/backend-business-api
+feature/backend-slot-generation
+feature/backend-booking
+feature/mobile-business-list
+feature/mobile-booking-flow
+feature/mobile-admin-auth
+fix/booking-conflict
+docs/sprint-plan
+```
+
+---
+
+# 13. Commit Kuralları
+
+Conventional Commits kullanılacaktır.
+
+```text
+feat: yeni özellik
+fix: hata düzeltmesi
+docs: dokümantasyon
+test: test ekleme
+refactor: kod düzenleme
+chore: proje veya yapılandırma işlemleri
+```
+
+Örnek commit mesajları:
+
+```text
+chore: initialize project structure
+docs: add MVP scope and sprint plan
+feat(backend): add PostgreSQL connection
+feat(database): add business and appointment models
+feat(api): add business listing endpoint
+feat(booking): add dynamic slot generation
+fix(booking): prevent duplicate active appointments
+feat(auth): add JWT login
+feat(mobile): add role selection screen
+feat(mobile): connect business list to API
+feat(mobile): add booking form
+test(booking): add concurrent reservation tests
+```
+
+---
+
+# 14. Pull Request Akışı
+
+Her görev için:
+
+1. GitHub Issue oluşturulur.
+2. `develop` dalından yeni branch açılır.
+3. Kod yazılır.
+4. Test edilir.
+5. Küçük ve anlamlı commit’ler atılır.
+6. Branch GitHub’a gönderilir.
+7. `develop` dalına pull request açılır.
+8. Değişiklikler kontrol edilir.
+9. Pull request merge edilir.
+10. Issue kapatılır.
+
+Ana MVP tamamlanınca:
+
+```text
+develop → main
+```
+
+pull request’i açılır.
+
+---
+
+# 15. GitHub Projects Sütunları
+
+```text
+Backlog
+Ready
+In Progress
+Review
+Testing
+Done
+Blocked
+```
+
+Önerilen etiketler:
+
+```text
+backend
+mobile
+database
+documentation
+testing
+integration
+bug
+priority-high
+priority-medium
+optional
+```
+
+---
+
+# 16. Her Issue İçin Kullanılacak Şablon
+
+```markdown
+## Amaç
+
+Bu görevde yapılacak özelliğin kısa açıklaması.
+
+## Kabul Kriterleri
+
+- Özellik çalışmalıdır.
+- Beklenen API yanıtı alınmalıdır.
+- Hata durumları yönetilmelidir.
+- Gerekli testler yapılmalıdır.
+
+## Teknik Notlar
+
+Kullanılacak servisler, modeller, endpoint’ler ve dosyalar.
+
+## Test Senaryoları
+
+1. Başarılı işlem
+2. Hatalı veri
+3. Yetkisiz erişim
+4. Çakışma durumu
+
+## Tamamlanma Tanımı
+
+- Kod yazıldı.
+- Test edildi.
+- Dokümantasyon güncellendi.
+- Pull request açıldı.
+- Develop dalına merge edildi.
+```
+
+---
+
+# 17. Kritik İş Kuralları
+
+## Slot Süresi
+
+İşletme yalnızca şu slot sürelerinden birini kullanabilir:
+
+```text
+30 dakika
+45 dakika
+60 dakika
+```
+
+## Geçmiş Randevu
+
+* Geçmiş tarihe randevu alınamaz.
+* Bugünün geçmiş saatleri seçilemez.
+
+## Aktif Randevu
+
+Aşağıdaki durumlar slotu dolu sayar:
+
+```text
+pending
+confirmed
+```
+
+Aşağıdaki durumlar slotu boş bırakır:
+
+```text
+cancelled
+completed
+```
+
+## Çakışma Kontrolü
+
+Aynı:
+
+* İşletme
+* Tarih
+* Başlangıç saati
+
+için ikinci aktif randevu oluşturulamaz.
+
+Backend yalnızca uygulama kontrolüne güvenmeyecektir. PostgreSQL üzerinde aktif randevular için benzersizlik kuralı bulunacaktır.
+
+## Randevu Durumları
+
+```text
+pending
+confirmed
+cancelled
+completed
+```
+
+Varsayılan yeni randevu durumu:
+
+```text
+pending
+```
+
+---
+
+# 18. Ana Demo Senaryosu
+
+Projenin başarılı sayılması için aşağıdaki akış çalışmalıdır:
+
+1. Kullanıcı uygulamayı açar.
+2. Müşteri rolünü seçer.
+3. İşletmeleri görüntüler.
+4. Bir işletme seçer.
+5. Tarih seçer.
+6. Boş slotları görüntüler.
+7. Bir slot seçer.
+8. Ad ve telefon bilgilerini girer.
+9. Randevu oluşturur.
+10. Aynı saat başka kullanıcı tarafından tekrar alınamaz.
+11. Esnaf rolü seçilir.
+12. Esnaf giriş yapar.
+13. Gelen randevuyu görüntüler.
+14. Randevuyu onaylar.
+15. Vakit kalırsa randevu Google Calendar’a eklenir.
+
+---
+
+# 19. Öncelik Sırası
+
+Proje boyunca aşağıdaki sıra değiştirilmeyecektir:
+
+```text
+1. Veritabanı ve backend temeli
+2. Slot sistemi
+3. Çakışmasız randevu oluşturma
+4. Esnaf giriş ve randevu API’leri
+5. Flutter müşteri akışı
+6. Flutter esnaf akışı
+7. Test ve hata düzeltme
+8. Google Calendar
+9. React web arayüzü
+```
+
+---
+
+# 20. Projenin Tamamlanma Kriteri
+
+Ana MVP aşağıdaki şartlar sağlandığında tamamlanmış kabul edilecektir:
+
+* Backend Docker ile çalışıyor
+* PostgreSQL bağlantısı çalışıyor
+* Migration’lar uygulanabiliyor
+* İşletmeler listelenebiliyor
+* Slotlar dinamik oluşturuluyor
+* Geçmiş slotlar seçilemiyor
+* Randevu oluşturulabiliyor
+* Aynı slot iki kez alınamıyor
+* Esnaf giriş yapabiliyor
+* Esnaf randevuları görüntüleyebiliyor
+* Esnaf randevu durumunu değiştirebiliyor
+* Flutter uygulaması Android’de çalışıyor
+* Kod iOS uyumlu yapıda tutuluyor
+* README ve teknik dokümantasyon hazır
+* GitHub commit ve pull request geçmişi düzenli
+
+Google Calendar ve React web uygulaması, ana MVP tamamlandıktan sonraki bonus hedeflerdir.
