@@ -16,3 +16,19 @@ class InvalidAppointmentSlotError(Exception):
 class AppointmentConflictError(Exception):
     """Raised when the requested slot is already booked by another active appointment."""
     pass
+
+
+class InvalidCredentialsError(Exception):
+    """Raised when the username/email or password is incorrect."""
+    pass
+
+
+class InvalidTokenError(Exception):
+    """Raised when a JWT token is invalid, expired, or has incorrect claims."""
+    pass
+
+
+class AmbiguousIdentifierError(Exception):
+    """Raised when an identifier matches multiple users (e.g. username/email crossover)."""
+    pass
+

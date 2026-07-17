@@ -15,3 +15,4 @@ __all__ = [
     "get_active_appointment_for_slot",
     "add_appointment",
 ]
+

@@ -217,6 +217,7 @@ async def test_get_slots_today_past_filtering(client: AsyncClient, monkeypatch: 
     # Fix local time to 2026-07-12 10:15
     fixed_now = datetime(2026, 7, 12, 10, 15, tzinfo=ISTANBUL_TIMEZONE)
     monkeypatch.setattr("app.services.slot_service.get_now_istanbul", lambda: fixed_now)
+    monkeypatch.setattr("app.api.v1.businesses.get_now_istanbul", lambda: fixed_now)
     
     query_date = date(2026, 7, 12)
     async with async_session_factory() as session:
@@ -251,6 +252,7 @@ async def test_get_slots_today_past_filtering(client: AsyncClient, monkeypatch: 
 async def test_get_slots_past_date(client: AsyncClient, monkeypatch: pytest.MonkeyPatch) -> None:
     fixed_now = datetime(2026, 7, 12, 10, 0, tzinfo=ISTANBUL_TIMEZONE)
     monkeypatch.setattr("app.services.slot_service.get_now_istanbul", lambda: fixed_now)
+    monkeypatch.setattr("app.api.v1.businesses.get_now_istanbul", lambda: fixed_now)
     
     response = await client.get("/api/v1/businesses/test-past-slots/slots?date=2026-07-11")
     assert response.status_code == 400

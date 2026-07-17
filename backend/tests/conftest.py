@@ -1,3 +1,8 @@
+import os
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-1234567890-test-secret-key-1234567890"
+os.environ["JWT_ALGORITHM"] = "HS256"
+os.environ["JWT_ACCESS_TOKEN_EXPIRE_MINUTES"] = "30"
+
 from collections.abc import AsyncGenerator
 
 import pytest
