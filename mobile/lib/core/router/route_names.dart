@@ -1,5 +1,7 @@
 class RouteNames {
   RouteNames._();
 
-  static const home = 'home';
+  static const roleSelection = 'roleSelection';
+  static const customerHome = 'customerHome';
+  static const adminLogin = 'adminLogin';
 }
