@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/app.dart';
 import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_selection_screen.dart';
+import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 
 void main() {
   group('RoleSelectionScreen Tests', () {
@@ -56,12 +57,9 @@ void main() {
         await tester.tap(find.text('Müşteri olarak devam et'));
         await tester.pumpAndSettle();
 
-        // Verify we arrived at the customer placeholder screen
+        // Verify we arrived at the customer list screen
         expect(find.text('İşletmeler'), findsOneWidget);
-        expect(
-          find.text('İşletme listesi sonraki bölümde eklenecek.'),
-          findsOneWidget,
-        );
+        expect(find.byType(CustomerBusinessListScreen), findsOneWidget);
       },
     );
 
