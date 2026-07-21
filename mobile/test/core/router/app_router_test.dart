@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/app.dart';
 import 'package:sirasende_mobile/core/router/app_router.dart';
 import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_selection_screen.dart';
-import 'package:sirasende_mobile/features/customer/presentation/screens/customer_home_placeholder_screen.dart';
+import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_placeholder_screen.dart';
 
 void main() {
@@ -31,7 +31,7 @@ void main() {
       router.go('/customer');
       await tester.pumpAndSettle();
 
-      expect(find.byType(CustomerHomePlaceholderScreen), findsOneWidget);
+      expect(find.byType(CustomerBusinessListScreen), findsOneWidget);
     });
 
     testWidgets('should load admin login placeholder on /admin/login path', (
