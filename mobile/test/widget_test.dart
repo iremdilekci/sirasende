@@ -12,9 +12,14 @@ void main() {
     // Let the GoRouter route transition resolve.
     await tester.pumpAndSettle();
 
-    // Verify that the app title and welcome texts are present.
+    // Verify that the app title and onboarding texts are present.
     expect(find.text('SıraSende'), findsWidgets);
-    expect(find.text('Mobil uygulama altyapısı hazır.'), findsOneWidget);
+    expect(
+      find.text('Randevunuzu kolayca oluşturun veya işletmenizi yönetin.'),
+      findsOneWidget,
+    );
+    expect(find.text('Müşteri olarak devam et'), findsOneWidget);
+    expect(find.text('Esnaf girişi'), findsOneWidget);
 
     // Verify that the old counter components are gone.
     expect(find.text('0'), findsNothing);
