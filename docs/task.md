@@ -51,13 +51,13 @@
 - [x] Giriş sistemi için testlerin yazılması
 
 ### Gün 8 – Esnaf Randevu Yönetimi
-- [ ] Esnaf randevu yönetim uç noktalarının kodlanması (`backend/app/api/v1/admin_appointments.py`)
-  - [ ] `GET /api/v1/admin/appointments` (İşletmeye ait randevuları listeleme ve filtreleme)
-  - [ ] `PATCH /api/v1/admin/appointments/{id}/status` (Durum güncelleme)
-- [ ] Randevu durum değişim iş kurallarının kontrolü
-  - [ ] Sadece izin verilen durum geçişleri (`pending` ➔ `confirmed`/`cancelled`, vb.)
-  - [ ] Esnafın başka bir işletmeye ait randevuyu değiştirmesinin engellenmesi
-- [ ] Esnaf randevu yönetimi için testlerin yazılması
+- [x] Esnaf randevu yönetim uç noktalarının kodlanması (`backend/app/api/v1/admin_appointments.py`)
+  - [x] `GET /api/v1/admin/appointments` (İşletmeye ait randevuları listeleme ve filtreleme)
+  - [x] `PATCH /api/v1/admin/appointments/{id}/status` (Durum güncelleme)
+- [x] Randevu durum değişim iş kurallarının kontrolü
+  - [x] Sadece izin verilen durum geçişleri (`pending` ➔ `confirmed`/`cancelled`, vb.)
+  - [x] Esnafın başka bir işletmeye ait randevuyu değiştirmesinin engellenmesi
+- [x] Esnaf randevu yönetimi için testlerin yazılması
 
 ### Gün 9 – Flutter Proje Temeli
 - [ ] Flutter projesinin oluşturulması (`mobile/` dizininde)

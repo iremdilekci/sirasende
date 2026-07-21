@@ -114,3 +114,83 @@ Sistem çalıştırılmadan önce `.env` dosyası içerisinde aşağıdaki deği
 *   `JWT_ALGORITHM`: Kullanılacak algoritma (Örn: `HS256`).
 *   `JWT_ACCESS_TOKEN_EXPIRE_MINUTES`: Token ömrü (dakika cinsinden, örn: `30`).
 
+---
+
+## Esnaf Randevu Yönetimi (Admin Appointments)
+
+Korumalı yönetici (admin) uç noktalarıdır. İstek başlığında geçerli JWT access token (`Authorization: Bearer <token>`) ile birlikte aktif bir işletmeye bağlı yönetici yetkisi gerektirir.
+
+### 1. İşletme Randevularını Listele
+Kimliği doğrulanmış yöneticinin bağlı olduğu işletmeye ait randevuları listeler. Opsiyonel tarih ve durum süzgeçlerini destekler.
+
+*   **Uç Nokta (URL):** `/api/v1/admin/appointments`
+*   **Yöntem (Method):** `GET`
+*   **İstek Başlığı:** `Authorization: Bearer <token>`
+*   **Query Parametreleri:**
+    *   `date` (Opsiyonel): `YYYY-MM-DD` biçiminde tarih filtresi.
+    *   `status` (Opsiyonel): `pending`, `confirmed`, `cancelled` veya `completed` durum filtresi.
+*   **Başarılı Yanıt (HTTP 200 OK):**
+    ```json
+    [
+      {
+        "id": "c1f7a4e0-3210-4f9e-9988-a7b6c5d4e3f2",
+        "customer_name": "Ahmet Yılmaz",
+        "customer_phone": "05551234567",
+        "customer_note": "Sakal tıraşı da olacak",
+        "appointment_date": "2026-07-20",
+        "start_time": "10:00",
+        "end_time": "10:30",
+        "status": "pending",
+        "created_at": "2026-07-12T10:00:00Z",
+        "updated_at": "2026-07-12T10:00:00Z"
+      }
+    ]
+    ```
+*   **Hata Yanıtları:**
+    *   **HTTP 401 Unauthorized:** Token eksik veya geçersizse.
+    *   **HTTP 403 Forbidden:** İşletme pasifse veya bulunamazsa (`{"detail": "Business access is inactive"}`).
+    *   **HTTP 422 Unprocessable Entity:** Geçersiz tarih veya durum parametresi gönderilirse.
+
+---
+
+### 2. Randevu Durumu Güncelle
+İşletmeye ait belirli bir randevunun durumunu günceller.
+
+*   **Uç Nokta (URL):** `/api/v1/admin/appointments/{appointment_id}/status`
+*   **Yöntem (Method):** `PATCH`
+*   **İstek Başlığı:** `Authorization: Bearer <token>`
+*   **İstek Gövdesi (Request Body - JSON):**
+    ```json
+    {
+      "status": "confirmed"
+    }
+    ```
+*   **Başarılı Yanıt (HTTP 200 OK):** Güncellenmiş `AdminAppointmentOut` nesnesi.
+*   **Hata Yanıtları:**
+    *   **HTTP 401 Unauthorized:** Token eksik veya geçersizse.
+    *   **HTTP 403 Forbidden:** İşletme pasifse veya bulunamazsa.
+    *   **HTTP 404 Not Found:** Randevu bulunamazsa veya başka bir işletmeye aitse (`{"detail": "Appointment not found"}`).
+    *   **HTTP 409 Conflict:** Geçersiz durum geçişi veya bitiş zamanı gelmeden tamamlama denemesi:
+        *   `{"detail": "Invalid appointment status transition"}`
+        *   `{"detail": "Appointment cannot be completed before its end time"}`
+    *   **HTTP 422 Unprocessable Entity:** İstek gövdesi formatı geçersizse veya ekstra alanlar içeriyorsa.
+
+---
+
+### Durum Geçiş Matrisi (State Machine)
+
+| Mevcut Durum | PENDING | CONFIRMED | CANCELLED | COMPLETED |
+| :--- | :--- | :--- | :--- | :--- |
+| **PENDING** | Idempotent (200) | İzinli | İzinli | Yasak (409) |
+| **CONFIRMED** | Yasak (409) | Idempotent (200) | İzinli | İzinli (Bitiş zamanı geçmişse) |
+| **CANCELLED** | Yasak (409) | Yasak (409) | Idempotent (200) | Yasak (409) |
+| **COMPLETED** | Yasak (409) | Yasak (409) | Yasak (409) | Idempotent (200) |
+
+---
+
+### Mimari ve Güvenlik Kararları
+
+1.  **Business Scope İzolasyonu:** Endpoint seviyesinde `business_id` istemciden kesinlikle kabul edilmez. Sorgular doğrudan `current_admin.business_id` üzerinden yürütülür.
+2.  **Row-Level Locking:** Status mutation işlemlerinde çakışma durumlarına karşı `SELECT ... FOR UPDATE` veritabanı satır kilitleme altyapısı uygulanmıştır.
+3.  **Idempotency Güvencesi:** Randevu zaten istenen durumda ise veritabanında gereksiz UPDATE yapılmaz; satır kilidi `session.commit()` ile hemen serbest bırakılarak `200 OK` döner.
+4.  **Hata Veri Gizliliği:** Başka işletmeye ait randevular ile bulunmayan randevularda aynı 404 yanıtı verilerek varlık sızdırılması engellenmiştir. Exception mesajlarında hiçbir müşteri PII verisi yer almaz.
