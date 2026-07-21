@@ -58,3 +58,65 @@ async def add_appointment(
     session.add(appointment)
     await session.flush()
     return appointment
+
+
+async def list_appointments_for_business(
+    session: AsyncSession,
+    *,
+    business_id: UUID,
+    appointment_date: date | None = None,
+    status: AppointmentStatus | None = None,
+) -> Sequence[Appointment]:
+    """Retrieve all appointments for a business with optional date and status filters,
+
+    ordered by appointment_date, start_time, and created_at ascending.
+    """
+    stmt = select(Appointment).where(Appointment.business_id == business_id)
+
+    if appointment_date is not None:
+        stmt = stmt.where(Appointment.appointment_date == appointment_date)
+
+    if status is not None:
+        stmt = stmt.where(Appointment.status == status)
+
+    stmt = stmt.order_by(
+        Appointment.appointment_date.asc(),
+        Appointment.start_time.asc(),
+        Appointment.created_at.asc(),
+    )
+    result = await session.scalars(stmt)
+    return result.all()
+
+
+async def get_appointment_for_business(
+    session: AsyncSession,
+    *,
+    appointment_id: UUID,
+    business_id: UUID,
+) -> Appointment | None:
+    """Retrieve an appointment by id scoped to a specific business."""
+    stmt = select(Appointment).where(
+        Appointment.id == appointment_id,
+        Appointment.business_id == business_id,
+    )
+    result = await session.scalars(stmt)
+    return result.first()
+
+
+async def get_appointment_for_business_for_update(
+    session: AsyncSession,
+    *,
+    appointment_id: UUID,
+    business_id: UUID,
+) -> Appointment | None:
+    """Retrieve an appointment by id scoped to a specific business with row-level locking (FOR UPDATE)."""
+    stmt = (
+        select(Appointment)
+        .where(
+            Appointment.id == appointment_id,
+            Appointment.business_id == business_id,
+        )
+        .with_for_update()
+    )
+    result = await session.scalars(stmt)
+    return result.first()

@@ -42,6 +42,16 @@ def migrated_database() -> None:
     command.downgrade(_alembic_config(), "base")
 
 
+FIXED_NOW = datetime(2026, 7, 12, 10, 15, tzinfo=ISTANBUL_TIMEZONE)
+
+
+@pytest.fixture(autouse=True)
+def mock_now_istanbul(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.services.slot_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.services.appointment_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.api.v1.businesses.get_now_istanbul", lambda: FIXED_NOW)
+
+
 @pytest.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
     transport = ASGITransport(app=app)

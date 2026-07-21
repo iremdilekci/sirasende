@@ -15,6 +15,16 @@ from app.services.appointment_service import build_pending_appointment, resolve_
 from app.services.slot_service import ISTANBUL_TIMEZONE
 
 
+FIXED_NOW = datetime(2026, 7, 12, 10, 15, tzinfo=ISTANBUL_TIMEZONE)
+
+
+@pytest.fixture(autouse=True)
+def mock_now_istanbul(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.services.slot_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.services.appointment_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.api.v1.businesses.get_now_istanbul", lambda: FIXED_NOW)
+
+
 # Helper to instantiate transient Business instance
 def _make_business(
     id_=None,
@@ -181,7 +191,7 @@ def test_resolve_slot_future_date() -> None:
     fixed_now = datetime(2026, 7, 20, 10, 15, tzinfo=ISTANBUL_TIMEZONE)
     start, end = resolve_appointment_slot(
         business=business,
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 8, 21),
         requested_start_time=time(9, 0),
         now=fixed_now,
     )
@@ -233,26 +243,28 @@ def test_resolve_slot_different_timezone_now() -> None:
 
 def test_build_appointment_orm_correct_business_id() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="12345678",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     assert appointment.business_id == business.id
 
 
 def test_build_appointment_customer_details_preserved() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="+9055512345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
         customer_note="My spec note",
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     assert appointment.customer_name == "John Doe"
     assert appointment.customer_phone == "+9055512345"
     assert appointment.customer_note == "My spec note"
@@ -260,63 +272,68 @@ def test_build_appointment_customer_details_preserved() -> None:
 
 def test_build_appointment_optional_note_omitted() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="+9055512345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     assert appointment.customer_note is None
 
 
 def test_build_appointment_end_time_calculated() -> None:
     business = _make_business(duration=45)
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="12345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     assert appointment.start_time == time(9, 0)
     assert appointment.end_time == time(9, 45)
 
 
 def test_build_appointment_status_explicit_pending() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="12345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     assert appointment.status == AppointmentStatus.PENDING
 
 
 def test_build_appointment_orm_fields_not_set() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="12345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    appointment = build_pending_appointment(business, payload)
+    appointment = build_pending_appointment(business, payload, now=fixed_now)
     # These are populated by DB triggers or ORM session unit of work
     assert getattr(appointment, "id", None) is None
 
 
 def test_build_appointment_inputs_not_mutated() -> None:
     business = _make_business()
+    fixed_now = datetime(2026, 7, 20, 8, 0, tzinfo=ISTANBUL_TIMEZONE)
     payload = AppointmentCreate(
         customer_name="John Doe",
         customer_phone="12345",
-        appointment_date=date(2026, 7, 21),
+        appointment_date=date(2026, 7, 20),
         start_time=time(9, 0),
     )
-    build_pending_appointment(business, payload)
+    build_pending_appointment(business, payload, now=fixed_now)
     # Validate no changes made to original arguments
     assert business.working_start_time == time(9, 0)
     assert payload.customer_name == "John Doe"

@@ -57,5 +57,23 @@ async def get_current_admin(
     return user
 
 
-__all__ = ["get_db", "get_current_admin", "raise_credentials_exception"]
+async def get_current_active_business_admin(
+    current_admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+) -> AdminUser:
+    """Verify that the authenticated AdminUser is linked to an active Business.
 
+    Raises a 403 Forbidden if the associated Business does not exist or is inactive.
+    """
+    from app.repositories.business_repository import get_business_by_id
+
+    business = await get_business_by_id(db, current_admin.business_id)
+    if business is None or not business.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Business access is inactive",
+        )
+    return current_admin
+
+
+__all__ = ["get_db", "get_current_admin", "get_current_active_business_admin", "raise_credentials_exception"]

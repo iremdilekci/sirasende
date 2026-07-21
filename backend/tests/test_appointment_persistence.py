@@ -19,6 +19,7 @@ from app.repositories.appointment_repository import (
 )
 from app.schemas.appointment import AppointmentCreate
 from app.services.appointment_service import create_appointment
+from app.services.slot_service import ISTANBUL_TIMEZONE
 
 
 pytestmark = [
@@ -45,6 +46,16 @@ def migrated_database() -> None:
     command.upgrade(_alembic_config(), "head")
     yield
     command.downgrade(_alembic_config(), "base")
+
+
+FIXED_NOW = datetime(2026, 7, 12, 10, 15, tzinfo=ISTANBUL_TIMEZONE)
+
+
+@pytest.fixture(autouse=True)
+def mock_now_istanbul(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("app.services.slot_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.services.appointment_service.get_now_istanbul", lambda: FIXED_NOW)
+    monkeypatch.setattr("app.api.v1.businesses.get_now_istanbul", lambda: FIXED_NOW)
 
 
 async def _add_business(session, slug: str) -> Business:
@@ -296,7 +307,7 @@ async def test_create_appointment_unexpected_integrity_error() -> None:
         payload = AppointmentCreate(
             customer_name="Test Unexpected",
             customer_phone="55500000",
-            appointment_date=date(2026, 7, 20),
+            appointment_date=date(2026, 8, 20),
             start_time=time(9, 0),
         )
 
