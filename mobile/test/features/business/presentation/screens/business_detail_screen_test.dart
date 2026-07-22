@@ -266,31 +266,65 @@ void main() {
     });
 
     testWidgets(
-      'should verify slots have no onTap handlers and no randevu al button exists',
+      'should verify slot selection, deselection, clear on date change, and continue button state',
       (WidgetTester tester) async {
         fakeRepo.businessResult = dummyBusiness;
         fakeRepo.slotsResult = [
           const Slot(startTime: '09:00', endTime: '09:30', available: true),
+          const Slot(startTime: '09:30', endTime: '10:00', available: true),
         ];
 
         await tester.pumpWidget(createWidgetUnderTest('berber-ahmet'));
         await tester.pumpAndSettle();
 
-        // Verify slot chip is rendered
-        final slotFinder = find.text('09:00');
-        expect(slotFinder, findsOneWidget);
+        // 1. Initially continue button should be disabled
+        final continueButtonFinder = find.widgetWithText(
+          FilledButton,
+          'Devam Et',
+        );
+        expect(
+          tester.widget<FilledButton>(continueButtonFinder).onPressed,
+          isNull,
+        );
 
-        // Tap on it
-        await tester.ensureVisible(slotFinder);
-        await tester.tap(slotFinder);
+        // 2. Tap first slot -> selects it
+        final slot1 = find.text('09:00');
+        await tester.ensureVisible(slot1);
+        await tester.tap(slot1);
         await tester.pumpAndSettle();
 
-        // Verify no crash occurs
-        expect(tester.takeException(), isNull);
+        // Button should be enabled
+        expect(
+          tester.widget<FilledButton>(continueButtonFinder).onPressed,
+          isNotNull,
+        );
 
-        // Verify no CTA/Randevu Al buttons or forms are present
-        expect(find.text('Randevu Al'), findsNothing);
-        expect(find.byType(TextField), findsNothing);
+        // 3. Tap second slot -> selects second, clears first
+        final slot2 = find.text('09:30');
+        await tester.ensureVisible(slot2);
+        await tester.tap(slot2);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester.widget<FilledButton>(continueButtonFinder).onPressed,
+          isNotNull,
+        );
+
+        // 4. Tap date selection -> picker shown -> change date -> slot cleared
+        final datePicker = find.text('22 Temmuz 2026');
+        await tester.ensureVisible(datePicker);
+        await tester.tap(datePicker);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('23'));
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+
+        // Selection should be cleared, button disabled
+        expect(
+          tester.widget<FilledButton>(continueButtonFinder).onPressed,
+          isNull,
+        );
       },
     );
   });

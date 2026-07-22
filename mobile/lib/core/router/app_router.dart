@@ -5,6 +5,8 @@ import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_s
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_placeholder_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -27,6 +29,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final slug = state.pathParameters['slug']!;
               return BusinessDetailScreen(slug: slug);
             },
+            routes: [
+              GoRoute(
+                path: 'appointment',
+                name: RouteNames.customerAppointmentForm,
+                builder: (context, state) {
+                  final args = state.extra as AppointmentFormArgs;
+                  return AppointmentFormScreen(args: args);
+                },
+              ),
+            ],
           ),
         ],
       ),

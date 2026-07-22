@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/core/router/route_names.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
@@ -20,6 +23,7 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
 
 class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
   late DateTime _selectedDate;
+  Slot? _selectedSlot;
 
   @override
   void initState() {
@@ -42,6 +46,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
+        _selectedSlot = null;
       });
     }
   }
@@ -56,6 +61,30 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
       date: formattedDate,
     );
     final slotsAsync = ref.watch(businessSlotsProvider(slotsParams));
+
+    ref.listen<AsyncValue<List<Slot>>>(businessSlotsProvider(slotsParams), (
+      prev,
+      next,
+    ) {
+      if (next.isLoading ||
+          next.hasError ||
+          (next.hasValue && next.value!.isEmpty)) {
+        if (_selectedSlot != null) {
+          setState(() {
+            _selectedSlot = null;
+          });
+        }
+      } else if (next.hasValue && _selectedSlot != null) {
+        final exists = next.value!.any(
+          (s) => s.startTime == _selectedSlot!.startTime && s.available,
+        );
+        if (!exists) {
+          setState(() {
+            _selectedSlot = null;
+          });
+        }
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -251,36 +280,93 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children: availableSlots.map((slot) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primaryContainer,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withAlpha(50),
+                          final isSelected = _selectedSlot == slot;
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                if (isSelected) {
+                                  _selectedSlot = null;
+                                } else {
+                                  _selectedSlot = slot;
+                                }
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
                               ),
-                            ),
-                            child: Text(
-                              slot.startTime,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onPrimaryContainer,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Theme.of(
+                                        context,
+                                      ).colorScheme.primaryContainer
+                                    : Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(
+                                          context,
+                                        ).colorScheme.outlineVariant,
+                                ),
+                              ),
+                              child: Text(
+                                slot.startTime,
+                                style: Theme.of(context).textTheme.labelLarge
+                                    ?.copyWith(
+                                      color: isSelected
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimaryContainer
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurface,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
                             ),
                           );
                         }).toList(),
                       );
                     },
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Continuation Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: FilledButton(
+                      onPressed: _selectedSlot == null || slotsAsync.isLoading
+                          ? null
+                          : () {
+                              context.pushNamed(
+                                RouteNames.customerAppointmentForm,
+                                pathParameters: {'slug': widget.slug},
+                                extra: AppointmentFormArgs(
+                                  businessSlug: widget.slug,
+                                  businessName: business.name,
+                                  date: formattedDate,
+                                  startTime: _selectedSlot!.startTime,
+                                  endTime: _selectedSlot!.endTime,
+                                ),
+                              );
+                            },
+                      style: FilledButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'Devam Et',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 24),
                 ],

@@ -5,4 +5,5 @@ class RouteNames {
   static const customerHome = 'customerHome';
   static const adminLogin = 'adminLogin';
   static const customerBusinessDetail = 'customerBusinessDetail';
+  static const customerAppointmentForm = 'customerAppointmentForm';
 }
