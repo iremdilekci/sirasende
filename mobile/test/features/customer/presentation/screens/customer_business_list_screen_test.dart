@@ -9,7 +9,6 @@ import 'package:sirasende_mobile/features/business/domain/repositories/business_
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/widgets/business_card.dart';
-import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
 import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
@@ -49,9 +48,24 @@ void main() {
     });
 
     Widget createWidgetUnderTest() {
+      final router = GoRouter(
+        initialLocation: '/customer',
+        routes: [
+          GoRoute(
+            path: '/customer',
+            name: RouteNames.customerHome,
+            builder: (context, state) => const CustomerBusinessListScreen(),
+          ),
+          GoRoute(
+            path: '/customer/businesses/:slug',
+            name: RouteNames.customerBusinessDetail,
+            builder: (context, state) => const Scaffold(),
+          ),
+        ],
+      );
       return ProviderScope(
         overrides: [businessRepositoryProvider.overrideWithValue(fakeRepo)],
-        child: const MaterialApp(home: CustomerBusinessListScreen()),
+        child: MaterialApp.router(routerConfig: router),
       );
     }
 
@@ -150,7 +164,7 @@ void main() {
     });
 
     testWidgets(
-      'tapping a card in the list when onTap is null does not crash or navigate',
+      'tapping a card in the list navigates successfully without throwing exceptions',
       (WidgetTester tester) async {
         fakeRepo.businessesResult = [dummyBusiness];
 

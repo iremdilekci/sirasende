@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/business/presentation/widgets/business_card.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sirasende_mobile/core/router/route_names.dart';
 import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
 import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 
@@ -54,7 +56,15 @@ class CustomerBusinessListScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                 itemBuilder: (context, index) {
                   final business = businesses[index];
-                  return BusinessCard(business: business, onTap: null);
+                  return BusinessCard(
+                    business: business,
+                    onTap: () {
+                      context.pushNamed(
+                        RouteNames.customerBusinessDetail,
+                        pathParameters: {'slug': business.slug},
+                      );
+                    },
+                  );
                 },
               ),
             );
