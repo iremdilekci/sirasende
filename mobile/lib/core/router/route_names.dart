@@ -4,4 +4,5 @@ class RouteNames {
   static const roleSelection = 'roleSelection';
   static const customerHome = 'customerHome';
   static const adminLogin = 'adminLogin';
+  static const customerBusinessDetail = 'customerBusinessDetail';
 }
