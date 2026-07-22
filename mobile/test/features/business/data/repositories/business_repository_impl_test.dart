@@ -3,10 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/features/business/data/datasources/business_remote_data_source.dart';
 import 'package:sirasende_mobile/features/business/data/repositories/business_repository_impl.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 
 class FakeRemoteDataSource extends BusinessRemoteDataSource {
   List<Business>? businessesResult;
   Business? businessResult;
+  List<Slot>? slotsResult;
+  String? lastSlug;
+  String? lastDate;
   Object? error;
 
   FakeRemoteDataSource() : super(Dio());
@@ -21,6 +25,14 @@ class FakeRemoteDataSource extends BusinessRemoteDataSource {
   Future<Business> fetchBusinessBySlug(String slug) async {
     if (error != null) throw error!;
     return businessResult!;
+  }
+
+  @override
+  Future<List<Slot>> fetchBusinessSlots(String slug, String date) async {
+    lastSlug = slug;
+    lastDate = date;
+    if (error != null) throw error!;
+    return slotsResult ?? [];
   }
 }
 
@@ -59,5 +71,38 @@ void main() {
       fakeDataSource.error = Exception('Network error');
       expect(() => repository.getBusinesses(), throwsException);
     });
+
+    test('getBusinessSlots should return list from datasource', () async {
+      final dummySlot = const Slot(
+        startTime: '09:00',
+        endTime: '09:30',
+        available: true,
+      );
+      fakeDataSource.slotsResult = [dummySlot];
+
+      final result = await repository.getBusinessSlots(
+        slug: 'test-slug',
+        date: '2026-07-22',
+      );
+
+      expect(fakeDataSource.lastSlug, 'test-slug');
+      expect(fakeDataSource.lastDate, '2026-07-22');
+      expect(result.length, 1);
+      expect(result[0].startTime, '09:00');
+    });
+
+    test(
+      'getBusinessSlots should propagate exceptions from datasource',
+      () async {
+        fakeDataSource.error = Exception('Slot fetch error');
+        expect(
+          () => repository.getBusinessSlots(
+            slug: 'test-slug',
+            date: '2026-07-22',
+          ),
+          throwsException,
+        );
+      },
+    );
   });
 }

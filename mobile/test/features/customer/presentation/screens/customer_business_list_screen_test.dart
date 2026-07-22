@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/router/route_names.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
@@ -26,6 +27,14 @@ class FakeBusinessRepository implements BusinessRepository {
   @override
   Future<Business> getBusinessBySlug(String slug) {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async {
+    return [];
   }
 }
 

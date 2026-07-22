@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   List<Business>? businessesResult;
   Business? businessResult;
+  List<Slot>? slotsResult;
+  String? lastSlug;
+  String? lastDate;
   Object? error;
 
   @override
@@ -19,6 +23,17 @@ class FakeBusinessRepository implements BusinessRepository {
   Future<Business> getBusinessBySlug(String slug) async {
     if (error != null) throw error!;
     return businessResult!;
+  }
+
+  @override
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async {
+    lastSlug = slug;
+    lastDate = date;
+    if (error != null) throw error!;
+    return slotsResult ?? [];
   }
 }
 
@@ -81,6 +96,93 @@ void main() {
         expect(state.error, isA<Exception>());
 
         sub.close();
+      },
+    );
+
+    test('BusinessSlotsParams equality and hashCode overrides', () {
+      const params1 = BusinessSlotsParams(slug: 'slug', date: '2026-07-22');
+      const params2 = BusinessSlotsParams(slug: 'slug', date: '2026-07-22');
+      const params3 = BusinessSlotsParams(slug: 'slug2', date: '2026-07-22');
+
+      expect(params1, params2);
+      expect(params1.hashCode, params2.hashCode);
+      expect(params1, isNot(params3));
+    });
+
+    test('businessSlotsProvider resolves slots list successfully', () async {
+      final dummySlot = const Slot(
+        startTime: '09:00',
+        endTime: '09:30',
+        available: true,
+      );
+      fakeRepo.slotsResult = [dummySlot];
+
+      final params = const BusinessSlotsParams(
+        slug: 'test-slug',
+        date: '2026-07-22',
+      );
+      final result = await container.read(businessSlotsProvider(params).future);
+
+      expect(fakeRepo.lastSlug, 'test-slug');
+      expect(fakeRepo.lastDate, '2026-07-22');
+      expect(result.length, 1);
+      expect(result[0].startTime, '09:00');
+    });
+
+    test(
+      'businessSlotsProvider returns AsyncError when slots fetch fails',
+      () async {
+        fakeRepo.error = Exception('Slots error');
+        final params = const BusinessSlotsParams(
+          slug: 'test-slug',
+          date: '2026-07-22',
+        );
+
+        final sub = container.listen(
+          businessSlotsProvider(params),
+          (prev, next) {},
+        );
+        await Future.delayed(const Duration(milliseconds: 10));
+
+        final state = container.read(businessSlotsProvider(params));
+        expect(state.hasError, isTrue);
+        expect(state.error, isA<Exception>());
+
+        sub.close();
+      },
+    );
+
+    test(
+      'businessSlotsProvider triggers refetch after invalidate call',
+      () async {
+        final dummySlot1 = const Slot(
+          startTime: '09:00',
+          endTime: '09:30',
+          available: true,
+        );
+        fakeRepo.slotsResult = [dummySlot1];
+
+        final params = const BusinessSlotsParams(
+          slug: 'test-slug',
+          date: '2026-07-22',
+        );
+
+        // First read
+        var result = await container.read(businessSlotsProvider(params).future);
+        expect(result[0].startTime, '09:00');
+
+        // Update mock results
+        final dummySlot2 = const Slot(
+          startTime: '10:00',
+          endTime: '10:30',
+          available: true,
+        );
+        fakeRepo.slotsResult = [dummySlot2];
+
+        // Invalidate and re-read
+        container.invalidate(businessSlotsProvider(params));
+        result = await container.read(businessSlotsProvider(params).future);
+        expect(result[0].startTime, '10:00');
       },
     );
   });
