@@ -1,18 +1,61 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
+import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
 import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 
-class BusinessDetailScreen extends ConsumerWidget {
+class BusinessDetailScreen extends ConsumerStatefulWidget {
   final String slug;
+  final DateTime Function()? clock;
 
-  const BusinessDetailScreen({super.key, required this.slug});
+  const BusinessDetailScreen({super.key, required this.slug, this.clock});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final businessAsync = ref.watch(businessDetailProvider(slug));
+  ConsumerState<BusinessDetailScreen> createState() =>
+      _BusinessDetailScreenState();
+}
+
+class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = widget.clock?.call() ?? DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    final now = widget.clock?.call() ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: today,
+      lastDate: today.add(const Duration(days: 30)),
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final businessAsync = ref.watch(businessDetailProvider(widget.slug));
+    final formattedDate = formatDateToYmd(_selectedDate);
+
+    final slotsParams = BusinessSlotsParams(
+      slug: widget.slug,
+      date: formattedDate,
+    );
+    final slotsAsync = ref.watch(businessSlotsProvider(slotsParams));
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +78,7 @@ class BusinessDetailScreen extends ConsumerWidget {
               icon: Icons.error_outline,
               actionLabel: 'Tekrar Dene',
               onAction: () {
-                ref.invalidate(businessDetailProvider(slug));
+                ref.invalidate(businessDetailProvider(widget.slug));
               },
             );
           },
@@ -118,6 +161,128 @@ class BusinessDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
+                  Text(
+                    'Randevu Tarihi',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () => _selectDate(context),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              formatTurkishDate(_selectedDate),
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Müsait Saatler',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  slotsAsync.when(
+                    loading: () => const AppLoadingIndicator(
+                      message: 'Müsait saatler yükleniyor...',
+                    ),
+                    error: (error, stackTrace) {
+                      final errorMessage = error is AppException
+                          ? error.message
+                          : 'Müsait saatler yüklenemedi.';
+                      return AppEmptyState(
+                        title: 'Müsait saatler yüklenemedi',
+                        message: errorMessage,
+                        icon: Icons.error_outline,
+                        actionLabel: 'Tekrar Dene',
+                        onAction: () {
+                          ref.invalidate(businessSlotsProvider(slotsParams));
+                        },
+                      );
+                    },
+                    data: (List<Slot> slots) {
+                      final availableSlots = slots
+                          .where((s) => s.available == true)
+                          .toList();
+
+                      if (availableSlots.isEmpty) {
+                        return const AppEmptyState(
+                          title: 'Müsait saat bulunamadı',
+                          message:
+                              'Bu tarih için uygun randevu saati bulunmuyor. Başka bir tarih seçebilirsiniz.',
+                          icon: Icons.access_time_filled_outlined,
+                        );
+                      }
+
+                      return Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: availableSlots.map((slot) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withAlpha(50),
+                              ),
+                            ),
+                            child: Text(
+                              slot.startTime,
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             );

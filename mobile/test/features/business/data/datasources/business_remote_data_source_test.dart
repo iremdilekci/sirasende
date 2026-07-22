@@ -152,7 +152,6 @@ void main() {
 
     test('should map FormatException to INVALID_RESPONSE', () async {
       mockAdapter.handler = (options) {
-        // Return bad data type
         return jsonResponse('not a list', 200);
       };
 
@@ -160,6 +159,84 @@ void main() {
         () => dataSource.fetchBusinesses(),
         throwsA(
           isA<AppException>().having((e) => e.code, 'code', 'INVALID_RESPONSE'),
+        ),
+      );
+    });
+
+    test(
+      'should fetch business slots successfully with encoded slug and date',
+      () async {
+        final slotsData = [
+          {
+            'start_time': '09:00',
+            'end_time': '09:30',
+            'available': true,
+            'reason': null,
+          },
+          {
+            'start_time': '09:30',
+            'end_time': '10:00',
+            'available': false,
+            'reason': 'booked',
+          },
+        ];
+
+        mockAdapter.handler = (options) {
+          expect(options.path, '/api/v1/businesses/berber%20ahmet/slots');
+          expect(options.queryParameters['date'], '2026-07-22');
+          return jsonResponse(slotsData, 200);
+        };
+
+        final result = await dataSource.fetchBusinessSlots(
+          'berber ahmet',
+          '2026-07-22',
+        );
+        expect(result.length, 2);
+        expect(result[0].startTime, '09:00');
+        expect(result[1].available, isFalse);
+      },
+    );
+
+    test('should return empty list when slots result is empty', () async {
+      mockAdapter.handler = (options) {
+        return jsonResponse([], 200);
+      };
+
+      final result = await dataSource.fetchBusinessSlots('slug', '2026-07-22');
+      expect(result, isEmpty);
+    });
+
+    test(
+      'should map 400 past date query exception to PAST_DATE_ERROR',
+      () async {
+        mockAdapter.handler = (options) {
+          return jsonResponse({
+            'detail': 'Cannot query slots for past dates',
+          }, 400);
+        };
+
+        expect(
+          () => dataSource.fetchBusinessSlots('slug', '2026-07-22'),
+          throwsA(
+            isA<AppException>().having(
+              (e) => e.code,
+              'code',
+              'PAST_DATE_ERROR',
+            ),
+          ),
+        );
+      },
+    );
+
+    test('should map 400 generic exception to BAD_REQUEST', () async {
+      mockAdapter.handler = (options) {
+        return jsonResponse({'detail': 'Some bad request info'}, 400);
+      };
+
+      expect(
+        () => dataSource.fetchBusinessSlots('slug', '2026-07-22'),
+        throwsA(
+          isA<AppException>().having((e) => e.code, 'code', 'BAD_REQUEST'),
         ),
       );
     });

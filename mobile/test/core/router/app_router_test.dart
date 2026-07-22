@@ -8,6 +8,7 @@ import 'package:sirasende_mobile/features/customer/presentation/screens/customer
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_placeholder_screen.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/widgets/business_card.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
@@ -21,6 +22,12 @@ class FakeBusinessRepository implements BusinessRepository {
 
   @override
   Future<Business> getBusinessBySlug(String slug) async => business!;
+
+  @override
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async => [];
 }
 
 void main() {

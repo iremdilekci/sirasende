@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/network/network_constants.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 
 class BusinessRemoteDataSource {
   final Dio _dio;
@@ -45,6 +46,39 @@ class BusinessRemoteDataSource {
     }
   }
 
+  Future<List<Slot>> fetchBusinessSlots(String slug, String date) async {
+    if (slug.isEmpty) {
+      throw const AppException(
+        message: 'Geçersiz işletme bilgisi (boş slug).',
+        code: 'INVALID_SLUG',
+      );
+    }
+    if (date.isEmpty) {
+      throw const AppException(
+        message: 'Geçersiz tarih bilgisi.',
+        code: 'INVALID_DATE',
+      );
+    }
+    try {
+      final response = await _dio.get(
+        NetworkConstants.businessSlots(slug),
+        queryParameters: {'date': date},
+      );
+      final data = response.data;
+      if (data is! List) {
+        throw const FormatException('Expected list response');
+      }
+      return data.map((json) {
+        if (json is! Map<String, dynamic>) {
+          throw const FormatException('Expected JSON map inside list');
+        }
+        return Slot.fromJson(json);
+      }).toList();
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   AppException _mapException(Object error) {
     if (error is DioException) {
       switch (error.type) {
@@ -66,6 +100,20 @@ class BusinessRemoteDataSource {
             return const AppException(
               message: 'İşletme bulunamadı.',
               code: 'NOT_FOUND',
+            );
+          } else if (statusCode == 400) {
+            final responseData = error.response?.data;
+            if (responseData is Map<String, dynamic> &&
+                responseData['detail'] == 'Cannot query slots for past dates') {
+              return const AppException(
+                message: 'Geçmiş tarihler için randevu saatleri sorgulanamaz.',
+                code: 'PAST_DATE_ERROR',
+              );
+            }
+            return AppException(
+              message:
+                  'Geçersiz istek parametresi (${statusCode ?? "Bilinmiyor"}).',
+              code: 'BAD_REQUEST',
             );
           } else if (statusCode != null && statusCode >= 500) {
             return const AppException(

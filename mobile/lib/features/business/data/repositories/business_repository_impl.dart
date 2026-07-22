@@ -1,5 +1,6 @@
 import 'package:sirasende_mobile/features/business/data/datasources/business_remote_data_source.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 
 class BusinessRepositoryImpl implements BusinessRepository {
@@ -15,5 +16,13 @@ class BusinessRepositoryImpl implements BusinessRepository {
   @override
   Future<Business> getBusinessBySlug(String slug) {
     return _remoteDataSource.fetchBusinessBySlug(slug);
+  }
+
+  @override
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) {
+    return _remoteDataSource.fetchBusinessSlots(slug, date);
   }
 }
