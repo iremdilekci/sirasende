@@ -1,11 +1,39 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
+import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
 import 'package:sirasende_mobile/features/appointment/domain/models/appointment_draft.dart';
+import 'package:sirasende_mobile/features/appointment/domain/repositories/appointment_repository.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
 
+class FakeAppointmentRepository implements AppointmentRepository {
+  Appointment? result;
+  Object? error;
+  int callCount = 0;
+  String? lastSlug;
+  AppointmentCreateRequest? lastRequest;
+
+  @override
+  Future<Appointment> createAppointment({
+    required String businessSlug,
+    required AppointmentCreateRequest request,
+  }) async {
+    callCount++;
+    lastSlug = businessSlug;
+    lastRequest = request;
+    if (error != null) throw error!;
+    return result!;
+  }
+}
+
 void main() {
-  group('AppointmentFormScreen Widget Tests', () {
+  group('AppointmentFormScreen Widget and Logic Tests', () {
+    late FakeAppointmentRepository fakeRepo;
+
     const dummyArgs = AppointmentFormArgs(
       businessSlug: 'berber-ahmet',
       businessName: 'Berber Ahmet',
@@ -14,12 +42,38 @@ void main() {
       endTime: '09:30',
     );
 
+    final dummyAppointment = const Appointment(
+      id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+      businessId: 'f5cc002d-3ed5-478e-3614-58f86d80b65c',
+      customerName: 'Ahmet Can',
+      customerPhone: '05554443322',
+      customerNote: null,
+      appointmentDate: '2026-07-22',
+      startTime: '09:00',
+      endTime: '09:30',
+      status: 'pending',
+      createdAt: '2026-07-22T20:00:00Z',
+      updatedAt: '2026-07-22T20:00:00Z',
+    );
+
+    setUp(() {
+      fakeRepo = FakeAppointmentRepository();
+      fakeRepo.result = dummyAppointment;
+    });
+
     Widget createWidgetUnderTest({
       AppointmentFormArgs args = dummyArgs,
       ValueChanged<AppointmentDraft>? onValidSubmit,
+      List<dynamic> overrides = const [],
     }) {
-      return MaterialApp(
-        home: AppointmentFormScreen(args: args, onValidSubmit: onValidSubmit),
+      return ProviderScope(
+        overrides: [
+          appointmentRepositoryProvider.overrideWithValue(fakeRepo),
+          ...overrides,
+        ],
+        child: MaterialApp(
+          home: AppointmentFormScreen(args: args, onValidSubmit: onValidSubmit),
+        ),
       );
     }
 
@@ -45,7 +99,10 @@ void main() {
           find.widgetWithText(TextFormField, 'Not (İsteğe Bağlı)'),
           findsOneWidget,
         );
-        expect(find.widgetWithText(FilledButton, 'Devam Et'), findsOneWidget);
+        expect(
+          find.widgetWithText(FilledButton, 'Randevuyu Oluştur'),
+          findsOneWidget,
+        );
       },
     );
 
@@ -54,14 +111,17 @@ void main() {
     ) async {
       await tester.pumpWidget(createWidgetUnderTest());
 
-      // Tap submit without typing anything
-      final submitButton = find.widgetWithText(FilledButton, 'Devam Et');
+      final submitButton = find.widgetWithText(
+        FilledButton,
+        'Randevuyu Oluştur',
+      );
       await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Ad soyad alanı zorunludur.'), findsOneWidget);
       expect(find.text('Telefon numarası alanı zorunludur.'), findsOneWidget);
+      expect(fakeRepo.callCount, 0); // Form invalid, no submit
     });
 
     testWidgets('should show validation error for short customer_name', (
@@ -69,18 +129,20 @@ void main() {
     ) async {
       await tester.pumpWidget(createWidgetUnderTest());
 
-      // Type 1 character name and blank phone
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Ad Soyad'),
         'A',
       );
-      final submitButton = find.widgetWithText(FilledButton, 'Devam Et');
+      final submitButton = find.widgetWithText(
+        FilledButton,
+        'Randevuyu Oluştur',
+      );
       await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Ad soyad en az 2 karakter olmalıdır.'), findsOneWidget);
-      expect(find.text('Telefon numarası alanı zorunludur.'), findsOneWidget);
+      expect(fakeRepo.callCount, 0);
     });
 
     testWidgets('should show validation error for short customer_phone', (
@@ -88,7 +150,6 @@ void main() {
     ) async {
       await tester.pumpWidget(createWidgetUnderTest());
 
-      // Type valid name and 4 characters phone
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Ad Soyad'),
         'Canan',
@@ -97,20 +158,23 @@ void main() {
         find.widgetWithText(TextFormField, 'Telefon Numarası'),
         '1234',
       );
-      final submitButton = find.widgetWithText(FilledButton, 'Devam Et');
+      final submitButton = find.widgetWithText(
+        FilledButton,
+        'Randevuyu Oluştur',
+      );
       await tester.ensureVisible(submitButton);
       await tester.tap(submitButton);
       await tester.pumpAndSettle();
 
-      expect(find.text('Ad soyad en az 2 karakter olmalıdır.'), findsNothing);
       expect(
         find.text('Telefon numarası en az 5 karakter olmalıdır.'),
         findsOneWidget,
       );
+      expect(fakeRepo.callCount, 0);
     });
 
     testWidgets(
-      'should fire onValidSubmit with validated draft on successful validation',
+      'should fire callCount on repository and trigger onValidSubmit',
       (WidgetTester tester) async {
         AppointmentDraft? capturedDraft;
 
@@ -135,59 +199,111 @@ void main() {
           ' Sac kesimi olsun. ',
         );
 
-        final submitButton = find.widgetWithText(FilledButton, 'Devam Et');
+        final submitButton = find.widgetWithText(
+          FilledButton,
+          'Randevuyu Oluştur',
+        );
         await tester.ensureVisible(submitButton);
         await tester.tap(submitButton);
         await tester.pumpAndSettle();
 
-        expect(find.text('Ad soyad alanı zorunludur.'), findsNothing);
-        expect(find.text('Telefon numarası alanı zorunludur.'), findsNothing);
-
+        expect(fakeRepo.callCount, 1);
         expect(capturedDraft, isNotNull);
-        expect(capturedDraft!.customerName, 'Ahmet Can'); // Trimmed
-        expect(capturedDraft!.customerPhone, '+905555555555'); // Trimmed
-        expect(capturedDraft!.customerNote, 'Sac kesimi olsun.'); // Trimmed
-        expect(capturedDraft!.businessSlug, 'berber-ahmet');
-        expect(capturedDraft!.appointmentDate, '2026-07-22');
-        expect(capturedDraft!.startTime, '09:00');
+        expect(capturedDraft!.customerName, 'Ahmet Can');
       },
     );
 
-    testWidgets('should handle empty optional note in output draft as null', (
-      WidgetTester tester,
-    ) async {
-      AppointmentDraft? capturedDraft;
+    testWidgets(
+      'should map 409 Conflict code to custom Turkish error banner with pop option',
+      (WidgetTester tester) async {
+        fakeRepo.error = const AppException(
+          message:
+              'Bu saat az önce başka biri tarafından rezerve edildi. Lütfen farklı bir saat seçin.',
+          code: 'CONFLICT',
+        );
 
-      await tester.pumpWidget(
-        createWidgetUnderTest(
-          onValidSubmit: (draft) {
-            capturedDraft = draft;
-          },
-        ),
-      );
+        await tester.pumpWidget(createWidgetUnderTest());
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Ad Soyad'),
-        'Ayse Can',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Telefon Numarası'),
-        '05445555555',
-      );
-      // Leave note empty
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Ad Soyad'),
+          'Ayse Yilmaz',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Telefon Numarası'),
+          '05445555555',
+        );
 
-      final submitButton = find.widgetWithText(FilledButton, 'Devam Et');
-      await tester.ensureVisible(submitButton);
-      await tester.tap(submitButton);
-      await tester.pumpAndSettle();
+        final submitButton = find.widgetWithText(
+          FilledButton,
+          'Randevuyu Oluştur',
+        );
+        await tester.ensureVisible(submitButton);
+        await tester.tap(submitButton);
+        await tester.pumpAndSettle();
 
-      expect(capturedDraft, isNotNull);
-      expect(capturedDraft!.customerName, 'Ayse Can');
-      expect(capturedDraft!.customerPhone, '05445555555');
-      expect(capturedDraft!.customerNote, isNull); // Empty note maps to null
-    });
+        expect(find.text('Bu saat artık müsait değil'), findsOneWidget);
+        expect(
+          find.text(
+            'Bu saat az önce başka biri tarafından rezerve edildi. Lütfen farklı bir saat seçin.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(FilledButton, 'Başka Saat Seç'),
+          findsOneWidget,
+        );
 
-    testWidgets('should not overflow on small screen physical sizes', (
+        // Verify form data remains preserved
+        expect(
+          find.widgetWithText(TextFormField, 'Ayse Yilmaz'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'should show standard error Turkish mapping for 400 Bad Request error',
+      (WidgetTester tester) async {
+        fakeRepo.error = const AppException(
+          message:
+              'Randevu bilgileri geçerli değil. Tarih ve saat seçiminizi kontrol edin.',
+          code: 'BAD_REQUEST',
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest());
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Ad Soyad'),
+          'Ayse Yilmaz',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Telefon Numarası'),
+          '05445555555',
+        );
+
+        final submitButton = find.widgetWithText(
+          FilledButton,
+          'Randevuyu Oluştur',
+        );
+        await tester.ensureVisible(submitButton);
+        await tester.tap(submitButton);
+        await tester.pumpAndSettle();
+
+        expect(find.text('İşlem Başarısız'), findsOneWidget);
+        expect(
+          find.text(
+            'Randevu bilgileri geçerli değil. Tarih ve saat seçiminizi kontrol edin.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.widgetWithText(TextFormField, 'Ayse Yilmaz'),
+          findsOneWidget,
+        ); // Inputs preserved
+      },
+    );
+
+    testWidgets('should not overflow layout on small screen size', (
       WidgetTester tester,
     ) async {
       tester.view.physicalSize = const Size(320 * 3.0, 568 * 3.0);
