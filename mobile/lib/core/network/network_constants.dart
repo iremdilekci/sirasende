@@ -14,4 +14,7 @@ class NetworkConstants {
 
   static String businessSlots(String slug) =>
       '$businesses/${Uri.encodeComponent(slug)}/slots';
+
+  static String createAppointment(String slug) =>
+      '$businesses/${Uri.encodeComponent(slug)}/appointments';
 }

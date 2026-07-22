@@ -1,0 +1,54 @@
+import 'dart:async';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sirasende_mobile/core/network/dio_provider.dart';
+import 'package:sirasende_mobile/features/appointment/data/datasources/appointment_remote_data_source.dart';
+import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
+import 'package:sirasende_mobile/features/appointment/data/repositories/appointment_repository_impl.dart';
+import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
+import 'package:sirasende_mobile/features/appointment/domain/repositories/appointment_repository.dart';
+
+class AppointmentController extends AsyncNotifier<Appointment?> {
+  @override
+  FutureOr<Appointment?> build() {
+    return null;
+  }
+
+  Future<void> bookAppointment({
+    required String businessSlug,
+    required AppointmentCreateRequest request,
+    void Function(Appointment)? onSuccess,
+  }) async {
+    if (state.isLoading) return;
+
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(appointmentRepositoryProvider);
+      final appointment = await repository.createAppointment(
+        businessSlug: businessSlug,
+        request: request,
+      );
+      onSuccess?.call(appointment);
+      return appointment;
+    });
+  }
+
+  void reset() {
+    state = const AsyncValue.data(null);
+  }
+}
+
+final appointmentRemoteDataSourceProvider =
+    Provider<AppointmentRemoteDataSource>((ref) {
+      final dio = ref.watch(dioProvider);
+      return AppointmentRemoteDataSource(dio);
+    });
+
+final appointmentRepositoryProvider = Provider<AppointmentRepository>((ref) {
+  final remoteDataSource = ref.watch(appointmentRemoteDataSourceProvider);
+  return AppointmentRepositoryImpl(remoteDataSource);
+});
+
+final appointmentControllerProvider = AsyncNotifierProvider.autoDispose<
+  AppointmentController,
+  Appointment?
+>(AppointmentController.new);

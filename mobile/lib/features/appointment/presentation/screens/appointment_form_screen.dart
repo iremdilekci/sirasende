@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/core/router/route_names.dart';
+import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
 import 'package:sirasende_mobile/features/appointment/domain/models/appointment_draft.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_success_args.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
 import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 
-class AppointmentFormScreen extends StatefulWidget {
+class AppointmentFormScreen extends ConsumerStatefulWidget {
   final AppointmentFormArgs args;
   final ValueChanged<AppointmentDraft>? onValidSubmit;
 
@@ -14,10 +22,11 @@ class AppointmentFormScreen extends StatefulWidget {
   });
 
   @override
-  State<AppointmentFormScreen> createState() => _AppointmentFormScreenState();
+  ConsumerState<AppointmentFormScreen> createState() =>
+      _AppointmentFormScreenState();
 }
 
-class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
+class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -31,8 +40,58 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
     super.dispose();
   }
 
+  Future<void> _submitForm() async {
+    FocusScope.of(context).unfocus();
+
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final draft = AppointmentDraft(
+      businessSlug: widget.args.businessSlug,
+      businessName: widget.args.businessName,
+      appointmentDate: widget.args.date,
+      startTime: widget.args.startTime,
+      endTime: widget.args.endTime,
+      customerName: _nameController.text.trim(),
+      customerPhone: _phoneController.text.trim(),
+      customerNote: _noteController.text.trim().isEmpty
+          ? null
+          : _noteController.text.trim(),
+    );
+
+    // Call test helper if provided
+    widget.onValidSubmit?.call(draft);
+
+    final request = AppointmentCreateRequest.fromDraft(draft);
+
+    await ref
+        .read(appointmentControllerProvider.notifier)
+        .bookAppointment(
+          businessSlug: widget.args.businessSlug,
+          request: request,
+          onSuccess: (appointment) {
+            if (mounted) {
+              context.goNamed(
+                RouteNames.customerAppointmentSuccess,
+                extra: AppointmentSuccessArgs(
+                  businessName: widget.args.businessName,
+                  appointmentDate: appointment.appointmentDate,
+                  startTime: appointment.startTime,
+                  endTime: appointment.endTime,
+                  status: appointment.status,
+                ),
+              );
+            }
+          },
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bookingState = ref.watch(appointmentControllerProvider);
+    final isLoading = bookingState.isLoading;
+
     DateTime? parsedDate;
     try {
       parsedDate = DateTime.parse(widget.args.date);
@@ -40,6 +99,14 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
     final dateText = parsedDate != null
         ? formatTurkishDate(parsedDate)
         : widget.args.date;
+
+    // Detect conflict vs other errors
+    AppException? appError;
+    if (bookingState.hasError && bookingState.error is AppException) {
+      appError = bookingState.error as AppException;
+    }
+
+    final isConflict = appError?.code == 'CONFLICT';
 
     return Scaffold(
       appBar: AppBar(title: const Text('Randevu Bilgileri')),
@@ -52,6 +119,92 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Error card if any
+                if (appError != null) ...[
+                  Card(
+                    margin: const EdgeInsets.only(bottom: 24),
+                    color: Theme.of(context).colorScheme.errorContainer,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  isConflict
+                                      ? 'Bu saat artık müsait değil'
+                                      : 'İşlem Başarısız',
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onErrorContainer,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            appError.message,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onErrorContainer,
+                                ),
+                          ),
+                          if (isConflict) ...[
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton.icon(
+                                onPressed: () {
+                                  // Invalidate cache
+                                  ref.invalidate(
+                                    businessSlotsProvider(
+                                      BusinessSlotsParams(
+                                        slug: widget.args.businessSlug,
+                                        date: widget.args.date,
+                                      ),
+                                    ),
+                                  );
+                                  // Return to details
+                                  context.pop();
+                                },
+                                icon: const Icon(Icons.arrow_back),
+                                label: const Text('Başka Saat Seç'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.error,
+                                  foregroundColor: Theme.of(
+                                    context,
+                                  ).colorScheme.onError,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+
                 // Selection Summary Card
                 Card(
                   margin: EdgeInsets.zero,
@@ -126,6 +279,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                 // Name Field
                 TextFormField(
                   controller: _nameController,
+                  enabled: !isLoading,
                   textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
                     labelText: 'Ad Soyad',
@@ -153,6 +307,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                 // Phone Field
                 TextFormField(
                   controller: _phoneController,
+                  enabled: !isLoading,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
                     labelText: 'Telefon Numarası',
@@ -181,6 +336,7 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                 // Note Field
                 TextFormField(
                   controller: _noteController,
+                  enabled: !isLoading,
                   keyboardType: TextInputType.multiline,
                   maxLines: 3,
                   decoration: const InputDecoration(
@@ -204,35 +360,28 @@ class _AppointmentFormScreenState extends State<AppointmentFormScreen> {
                   width: double.infinity,
                   height: 50,
                   child: FilledButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        final draft = AppointmentDraft(
-                          businessSlug: widget.args.businessSlug,
-                          businessName: widget.args.businessName,
-                          appointmentDate: widget.args.date,
-                          startTime: widget.args.startTime,
-                          endTime: widget.args.endTime,
-                          customerName: _nameController.text.trim(),
-                          customerPhone: _phoneController.text.trim(),
-                          customerNote: _noteController.text.trim().isEmpty
-                              ? null
-                              : _noteController.text.trim(),
-                        );
-                        widget.onValidSubmit?.call(draft);
-                      }
-                    },
+                    onPressed: isLoading ? null : _submitForm,
                     style: FilledButton.styleFrom(
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Devam Et',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Randevuyu Oluştur',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
