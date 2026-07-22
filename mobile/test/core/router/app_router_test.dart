@@ -7,6 +7,8 @@ import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_s
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_placeholder_screen.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
@@ -153,5 +155,33 @@ void main() {
 
       expect(find.byType(AdminLoginPlaceholderScreen), findsOneWidget);
     });
+
+    testWidgets(
+      'should load appointment form screen on nested path with extra arguments',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
+
+        router.go(
+          '/customer/businesses/berber-ahmet/appointment',
+          extra: const AppointmentFormArgs(
+            businessSlug: 'berber-ahmet',
+            businessName: 'Berber Ahmet',
+            date: '2026-07-22',
+            startTime: '09:00',
+            endTime: '09:30',
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AppointmentFormScreen), findsOneWidget);
+        expect(find.text('Randevu Bilgileri'), findsOneWidget);
+      },
+    );
   });
 }
