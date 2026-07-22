@@ -48,7 +48,7 @@ final appointmentRepositoryProvider = Provider<AppointmentRepository>((ref) {
   return AppointmentRepositoryImpl(remoteDataSource);
 });
 
-final appointmentControllerProvider = AsyncNotifierProvider.autoDispose<
-  AppointmentController,
-  Appointment?
->(AppointmentController.new);
+final appointmentControllerProvider =
+    AsyncNotifierProvider.autoDispose<AppointmentController, Appointment?>(
+      AppointmentController.new,
+    );

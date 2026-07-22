@@ -7,10 +7,7 @@ import 'package:sirasende_mobile/features/business/presentation/helpers/datetime
 class AppointmentSuccessScreen extends StatelessWidget {
   final AppointmentSuccessArgs args;
 
-  const AppointmentSuccessScreen({
-    super.key,
-    required this.args,
-  });
+  const AppointmentSuccessScreen({super.key, required this.args});
 
   String _translateStatus(String rawStatus) {
     switch (rawStatus.toLowerCase()) {
@@ -33,10 +30,9 @@ class AppointmentSuccessScreen extends StatelessWidget {
     try {
       parsedDate = DateTime.parse(args.appointmentDate);
     } catch (_) {}
-    final dateText =
-        parsedDate != null
-            ? formatTurkishDate(parsedDate)
-            : args.appointmentDate;
+    final dateText = parsedDate != null
+        ? formatTurkishDate(parsedDate)
+        : args.appointmentDate;
 
     return Scaffold(
       appBar: AppBar(
@@ -88,10 +84,9 @@ class AppointmentSuccessScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withAlpha(128),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withAlpha(128),
                   ),
                 ),
                 child: Padding(
@@ -101,11 +96,8 @@ class AppointmentSuccessScreen extends StatelessWidget {
                     children: [
                       Text(
                         args.businessName,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const Divider(height: 24),
                       Row(
@@ -148,12 +140,11 @@ class AppointmentSuccessScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             _translateStatus(args.status),
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                           ),
                         ],
                       ),
@@ -178,10 +169,7 @@ class AppointmentSuccessScreen extends StatelessWidget {
                   ),
                   child: const Text(
                     'Ana Sayfaya Dön',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
