@@ -4,6 +4,8 @@ import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AdminProfileScreen extends ConsumerStatefulWidget {
   const AdminProfileScreen({super.key});
@@ -664,6 +666,16 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                         },
                       ),
 
+                    const SizedBox(height: 24),
+                    Text(
+                      'Google Takvim Entegrasyonu',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildGoogleCalendarSection(),
+
                     const SizedBox(height: 32),
 
                     // Save Button
@@ -736,5 +748,195 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildGoogleCalendarSection() {
+    final statusAsync = ref.watch(googleCalendarStatusProvider);
+    final controllerState = ref.watch(googleCalendarControllerProvider);
+    final isLoading = controllerState.isLoading;
+
+    return statusAsync.when(
+      data: (status) {
+        if (status.connected) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: Colors.green),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Google Takvim Bağlı',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Bağlı Hesap: ${status.googleAccountEmail ?? ""}',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: isLoading ? null : _showDisconnectConfirmationDialog,
+                      icon: const Icon(Icons.link_off),
+                      label: const Text('Bağlantıyı Kaldır'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Randevularınızı Google Takviminiz ile senkronize etmek için hesabınızı bağlayın.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: isLoading ? null : _connectGoogleCalendar,
+                      icon: const Icon(Icons.link),
+                      label: const Text('Google Takvim\'i Bağla'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      },
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      ),
+      error: (error, _) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Bağlantı durumu alınamadı.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () {
+                  ref.invalidate(googleCalendarStatusProvider);
+                },
+                child: const Text('Tekrar Dene'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _connectGoogleCalendar() async {
+    final controller = ref.read(googleCalendarControllerProvider.notifier);
+    final authUrl = await controller.connect(
+      onError: (msg) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      },
+    );
+
+    if (authUrl != null && mounted) {
+      final uri = Uri.parse(authUrl);
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+        } else {
+          throw Exception('URL açılamadı.');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bağlantı adresi açılamadı: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showDisconnectConfirmationDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Google Takvim Bağlantısını Kaldır'),
+        content: const Text(
+          'Google Takvim bağlantısını kaldırmak istediğinize emin misiniz? '
+          'Randevularınız artık Google Takviminize senkronize edilmeyecektir.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('İptal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Bağlantıyı Kaldır'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      await ref.read(googleCalendarControllerProvider.notifier).disconnect(
+        onSuccess: () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Google Takvim bağlantısı kaldırıldı.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        },
+        onError: (msg) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(msg),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        },
+      );
+    }
   }
 }

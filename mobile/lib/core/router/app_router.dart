@@ -15,6 +15,7 @@ import 'package:sirasende_mobile/features/appointment/presentation/models/appoin
 import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_success_screen.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/google_calendar_callback_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final listenable = ValueNotifier<AsyncValue<AdminUser?>>(
@@ -120,6 +121,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const AdminProfileScreen(),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/google-calendar/callback',
+        name: RouteNames.googleCalendarCallback,
+        builder: (context, state) {
+          final status = state.uri.queryParameters['status'];
+          final error = state.uri.queryParameters['error'];
+          return GoogleCalendarCallbackScreen(
+            status: status,
+            error: error,
+          );
+        },
       ),
     ],
   );
