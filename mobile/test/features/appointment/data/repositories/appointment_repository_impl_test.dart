@@ -23,6 +23,23 @@ class FakeAppointmentRemoteDataSource implements AppointmentRemoteDataSource {
     if (error != null) throw error!;
     return result!;
   }
+
+  List<Appointment>? listResult;
+  int listCallCount = 0;
+  String? lastDateParam;
+  String? lastStatusParam;
+
+  @override
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) async {
+    listCallCount++;
+    lastDateParam = date;
+    lastStatusParam = status;
+    if (error != null) throw error!;
+    return listResult!;
+  }
 }
 
 void main() {
@@ -87,5 +104,22 @@ void main() {
         throwsA(isA<AppException>().having((e) => e.code, 'code', 'CONFLICT')),
       );
     });
+
+    test(
+      'should delegate getAdminAppointments to remote data source and return value on success',
+      () async {
+        fakeRemoteDS.listResult = [dummyAppointment];
+
+        final result = await repository.getAdminAppointments(
+          date: '2026-07-22',
+          status: 'pending',
+        );
+
+        expect(result, [dummyAppointment]);
+        expect(fakeRemoteDS.listCallCount, 1);
+        expect(fakeRemoteDS.lastDateParam, '2026-07-22');
+        expect(fakeRemoteDS.lastStatusParam, 'pending');
+      },
+    );
   });
 }

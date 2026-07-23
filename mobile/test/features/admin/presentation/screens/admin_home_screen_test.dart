@@ -45,7 +45,7 @@ void main() {
     }
 
     testWidgets(
-      'should render username, welcome header and disabled section correctly',
+      'should render username, welcome header and appointments section correctly',
       (WidgetTester tester) async {
         await tester.pumpWidget(createWidgetUnderTest());
         await tester.pumpAndSettle();
@@ -54,7 +54,10 @@ void main() {
         expect(find.text('Hoş geldiniz'), findsOneWidget);
         expect(find.text('Ahmet Berber'), findsOneWidget);
         expect(find.text('Randevular'), findsOneWidget);
-        expect(find.text('Bir sonraki bölümde eklenecek'), findsOneWidget);
+        expect(
+          find.text('Gelen randevuları görün ve filtreleyin'),
+          findsOneWidget,
+        );
 
         // Verify technical IDs and token are NOT visible on screen
         expect(find.text('a1b2-c3d4'), findsNothing);

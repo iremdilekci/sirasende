@@ -210,5 +210,81 @@ void main() {
         );
       },
     );
+
+    group('getAdminAppointments Tests', () {
+      const dummyListResponse = [
+        {
+          'id': 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+          'business_id': 'f5cc002d-3ed5-478e-3614-58f86d80b65c',
+          'customer_name': 'Ahmet Can',
+          'customer_phone': '05554443322',
+          'customer_note': 'Saç tıraşı',
+          'appointment_date': '2026-07-22',
+          'start_time': '09:00',
+          'end_time': '09:30',
+          'status': 'pending',
+          'created_at': '2026-07-22T08:00:00Z',
+          'updated_at': '2026-07-22T08:00:00Z',
+        },
+      ];
+
+      test('should execute GET with correct path and parameters', () async {
+        mockAdapter.handler = (options) {
+          expect(options.method, 'GET');
+          expect(options.path, '/api/v1/admin/appointments');
+          expect(options.queryParameters['date'], '2026-07-22');
+          expect(options.queryParameters['status'], 'pending');
+          return jsonResponse(dummyListResponse, 200);
+        };
+
+        final result = await dataSource.getAdminAppointments(
+          date: '2026-07-22',
+          status: 'pending',
+        );
+
+        expect(result.length, 1);
+        expect(result.first.id, 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d');
+        expect(result.first.customerName, 'Ahmet Can');
+        expect(result.first.status, 'pending');
+      });
+
+      test('should map 401 status to UNAUTHORIZED exception', () async {
+        mockAdapter.handler = (options) {
+          return jsonResponse({'detail': 'Token expired'}, 401);
+        };
+
+        expect(
+          () => dataSource.getAdminAppointments(),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.code, 'code', 'UNAUTHORIZED')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  contains('Oturumunuzun süresi doldu'),
+                ),
+          ),
+        );
+      });
+
+      test('should map 403 status to FORBIDDEN exception', () async {
+        mockAdapter.handler = (options) {
+          return jsonResponse({'detail': 'Business access is inactive'}, 403);
+        };
+
+        expect(
+          () => dataSource.getAdminAppointments(),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.code, 'code', 'FORBIDDEN')
+                .having(
+                  (e) => e.message,
+                  'message',
+                  contains('İşletme hesabı aktif değil'),
+                ),
+          ),
+        );
+      });
+    });
   });
 }

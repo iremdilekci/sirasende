@@ -20,4 +20,5 @@ class NetworkConstants {
 
   static const login = '/api/v1/auth/login';
   static const me = '/api/v1/auth/me';
+  static const adminAppointments = '/api/v1/admin/appointments';
 }
