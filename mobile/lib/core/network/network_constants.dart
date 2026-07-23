@@ -17,4 +17,7 @@ class NetworkConstants {
 
   static String createAppointment(String slug) =>
       '$businesses/${Uri.encodeComponent(slug)}/appointments';
+
+  static const login = '/api/v1/auth/login';
+  static const me = '/api/v1/auth/me';
 }

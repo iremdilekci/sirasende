@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/constants/app_constants.dart';
 import 'package:sirasende_mobile/core/router/route_names.dart';
+import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:sirasende_mobile/shared/widgets/app_button.dart';
 
-class RoleSelectionScreen extends StatelessWidget {
+class RoleSelectionScreen extends ConsumerWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authControllerProvider);
+
+    // Auth başlangıç kontrolü tamamlanana kadar kontrollü splash/loading ekranı göster.
+    if (authState.isLoading && authState.value == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Center(
