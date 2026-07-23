@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +7,8 @@ import 'package:sirasende_mobile/core/router/app_router.dart';
 import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_selection_screen.dart';
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
-import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_placeholder_screen.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_screen.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/admin_home_screen.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_success_args.dart';
@@ -16,6 +18,8 @@ import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/widgets/business_card.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
+import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   List<Business> businesses = [];
@@ -34,9 +38,23 @@ class FakeBusinessRepository implements BusinessRepository {
   }) async => [];
 }
 
+class FakeAuthController extends AuthController {
+  AdminUser? userValue;
+
+  @override
+  FutureOr<AdminUser?> build() async {
+    return userValue;
+  }
+
+  void setUser(AdminUser? user) {
+    state = AsyncValue.data(user);
+  }
+}
+
 void main() {
   group('GoRouter Tests', () {
     late FakeBusinessRepository fakeRepo;
+    late FakeAuthController fakeAuthController;
 
     final dummyBusiness = const Business(
       id: '1',
@@ -50,27 +68,40 @@ void main() {
       workingEndTime: '18:00:00',
     );
 
+    const dummyAdmin = AdminUser(
+      id: 'u1',
+      businessId: 'b1',
+      username: 'Ahmet Barber',
+      email: 'a@a.com',
+      isActive: true,
+    );
+
     setUp(() {
       fakeRepo = FakeBusinessRepository();
       fakeRepo.businesses = [dummyBusiness];
       fakeRepo.business = dummyBusiness;
+      fakeAuthController = FakeAuthController();
     });
 
     Widget createWidgetUnderTest() {
       return ProviderScope(
-        overrides: [businessRepositoryProvider.overrideWithValue(fakeRepo)],
+        overrides: [
+          businessRepositoryProvider.overrideWithValue(fakeRepo),
+          authControllerProvider.overrideWith(() => fakeAuthController),
+        ],
         child: const SiraSendeApp(),
       );
     }
 
-    testWidgets('should load role selection screen on root path', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'should load role selection screen on root path when unauthenticated',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
 
-      expect(find.byType(RoleSelectionScreen), findsOneWidget);
-    });
+        expect(find.byType(RoleSelectionScreen), findsOneWidget);
+      },
+    );
 
     testWidgets('should load customer business list on /customer path', (
       WidgetTester tester,
@@ -141,22 +172,65 @@ void main() {
       expect(find.byType(CustomerBusinessListScreen), findsOneWidget);
     });
 
-    testWidgets('should load admin login placeholder on /admin/login path', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.pumpAndSettle();
+    testWidgets(
+      'should load admin login screen on /admin/login path when unauthenticated',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(SiraSendeApp)),
-      );
-      final router = container.read(appRouterProvider);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
 
-      router.go('/admin/login');
-      await tester.pumpAndSettle();
+        router.go('/admin/login');
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AdminLoginPlaceholderScreen), findsOneWidget);
-    });
+        expect(find.byType(AdminLoginScreen), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should redirect /admin/home to /admin/login when unauthenticated',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
+
+        router.go('/admin/home');
+        await tester.pumpAndSettle();
+
+        // Redirects to login!
+        expect(find.byType(AdminLoginScreen), findsOneWidget);
+        expect(find.byType(AdminHomeScreen), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'should redirect /admin/login to /admin/home when authenticated',
+      (WidgetTester tester) async {
+        fakeAuthController.userValue = dummyAdmin;
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
+
+        router.go('/admin/login');
+        await tester.pumpAndSettle();
+
+        // Redirects to home!
+        expect(find.byType(AdminHomeScreen), findsOneWidget);
+        expect(find.byType(AdminLoginScreen), findsNothing);
+      },
+    );
 
     testWidgets(
       'should load appointment form screen on nested path with extra arguments',

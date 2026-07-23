@@ -1,13 +1,53 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/app.dart';
+import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
+import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
+import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+
+class FakeAuthController extends AuthController {
+  @override
+  FutureOr<AdminUser?> build() async {
+    return null;
+  }
+}
+
+class FakeBusinessRepository implements BusinessRepository {
+  @override
+  Future<List<Business>> getBusinesses() async => [];
+
+  @override
+  Future<Business> getBusinessBySlug(String slug) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async => [];
+}
 
 void main() {
   testWidgets('App base layout smoke test with Riverpod and router', (
     WidgetTester tester,
   ) async {
-    // Build our app inside a ProviderScope and trigger a frame.
-    await tester.pumpWidget(const ProviderScope(child: SiraSendeApp()));
+    // Build our app inside a ProviderScope with overridden providers and trigger a frame.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(() => FakeAuthController()),
+          businessRepositoryProvider.overrideWithValue(
+            FakeBusinessRepository(),
+          ),
+        ],
+        child: const SiraSendeApp(),
+      ),
+    );
 
     // Let the GoRouter route transition resolve.
     await tester.pumpAndSettle();

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sirasende_mobile/core/network/auth_interceptor.dart';
 import 'package:sirasende_mobile/core/network/network_constants.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -10,5 +11,7 @@ final dioProvider = Provider<Dio>((ref) {
     sendTimeout: const Duration(seconds: 15),
     headers: {'Accept': 'application/json', 'Content-Type': 'application/json'},
   );
-  return Dio(options);
+  final dio = Dio(options);
+  dio.interceptors.add(AuthInterceptor(ref));
+  return dio;
 });
