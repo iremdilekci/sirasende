@@ -89,6 +89,71 @@ class _AdminAppointmentsScreenState
     return 'Randevular yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.';
   }
 
+  Future<void> _confirmAction({
+    required String appointmentId,
+    required String actionName,
+    required String targetStatus,
+    required String message,
+  }) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('$actionName Onayı'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Evet, Devam Et'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      await _executeStatusUpdate(appointmentId, targetStatus);
+    }
+  }
+
+  Future<void> _executeStatusUpdate(
+    String appointmentId,
+    String targetStatus,
+  ) async {
+    final dateStr = _selectedDate != null ? _formatDate(_selectedDate!) : null;
+    final params = AdminAppointmentsParams(
+      date: dateStr,
+      status: _selectedStatus,
+    );
+
+    await ref
+        .read(adminAppointmentActionControllerProvider.notifier)
+        .updateStatus(
+          id: appointmentId,
+          status: targetStatus,
+          onSuccess: () {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Randevu durumu başarıyla güncellendi.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+              ref.invalidate(adminAppointmentsProvider(params));
+            }
+          },
+          onError: (message) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(message), backgroundColor: Colors.red),
+              );
+            }
+          },
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateStr = _selectedDate != null ? _formatDate(_selectedDate!) : null;
@@ -98,6 +163,9 @@ class _AdminAppointmentsScreenState
     );
 
     final appointmentsAsync = ref.watch(adminAppointmentsProvider(params));
+    final isActionLoading = ref
+        .watch(adminAppointmentActionControllerProvider)
+        .isLoading;
 
     final hasActiveFilter = _selectedDate != null || _selectedStatus != null;
 
@@ -107,7 +175,7 @@ class _AdminAppointmentsScreenState
         actions: [
           if (hasActiveFilter)
             TextButton.icon(
-              onPressed: _clearFilters,
+              onPressed: isActionLoading ? null : _clearFilters,
               icon: const Icon(Icons.clear_all, size: 18),
               label: const Text('Temizle'),
               style: TextButton.styleFrom(
@@ -136,7 +204,9 @@ class _AdminAppointmentsScreenState
                     // Date Filter
                     Expanded(
                       child: InkWell(
-                        onTap: () => _selectDate(context),
+                        onTap: isActionLoading
+                            ? null
+                            : () => _selectDate(context),
                         borderRadius: BorderRadius.circular(8),
                         child: InputDecorator(
                           decoration: const InputDecoration(
@@ -204,17 +274,21 @@ class _AdminAppointmentsScreenState
                             ),
                           );
                         }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedStatus = val;
-                          });
-                        },
+                        onChanged: isActionLoading
+                            ? null
+                            : (val) {
+                                setState(() {
+                                  _selectedStatus = val;
+                                });
+                              },
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+
+            if (isActionLoading) const LinearProgressIndicator(),
 
             // Appointments List area
             Expanded(
@@ -280,6 +354,10 @@ class _AdminAppointmentsScreenState
                           appointment.status,
                           context,
                         );
+
+                        final hasActions =
+                            appointment.status == 'pending' ||
+                            appointment.status == 'confirmed';
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12.0),
@@ -400,6 +478,139 @@ class _AdminAppointmentsScreenState
                                             context,
                                           ).colorScheme.onSurfaceVariant,
                                         ),
+                                  ),
+                                ],
+                                if (hasActions) ...[
+                                  const Divider(height: 24),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      if (appointment.status == 'pending') ...[
+                                        FilledButton.icon(
+                                          onPressed: isActionLoading
+                                              ? null
+                                              : () => _confirmAction(
+                                                  appointmentId: appointment.id,
+                                                  actionName: 'Onayla',
+                                                  targetStatus: 'confirmed',
+                                                  message:
+                                                      'Bu randevuyu onaylamak istiyor musunuz?',
+                                                ),
+                                          icon: const Icon(
+                                            Icons.check,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'Onayla',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.green.shade700,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: isActionLoading
+                                              ? null
+                                              : () => _confirmAction(
+                                                  appointmentId: appointment.id,
+                                                  actionName: 'İptal Et',
+                                                  targetStatus: 'cancelled',
+                                                  message:
+                                                      'Bu randevuyu iptal etmek istiyor musunuz?',
+                                                ),
+                                          icon: const Icon(
+                                            Icons.cancel,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'İptal Et',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor:
+                                                Colors.red.shade700,
+                                            side: BorderSide(
+                                              color: Colors.red.shade700,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                        ),
+                                      ] else if (appointment.status ==
+                                          'confirmed') ...[
+                                        FilledButton.icon(
+                                          onPressed: isActionLoading
+                                              ? null
+                                              : () => _confirmAction(
+                                                  appointmentId: appointment.id,
+                                                  actionName: 'Tamamla',
+                                                  targetStatus: 'completed',
+                                                  message:
+                                                      'Bu randevuyu tamamlandı olarak işaretlemek istiyor musunuz?',
+                                                ),
+                                          icon: const Icon(
+                                            Icons.task_alt,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'Tamamla',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                Colors.green.shade700,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                        ),
+                                        OutlinedButton.icon(
+                                          onPressed: isActionLoading
+                                              ? null
+                                              : () => _confirmAction(
+                                                  appointmentId: appointment.id,
+                                                  actionName: 'İptal Et',
+                                                  targetStatus: 'cancelled',
+                                                  message:
+                                                      'Bu randevuyu iptal etmek istiyor musunuz?',
+                                                ),
+                                          icon: const Icon(
+                                            Icons.cancel,
+                                            size: 16,
+                                          ),
+                                          label: const Text(
+                                            'İptal Et',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor:
+                                                Colors.red.shade700,
+                                            side: BorderSide(
+                                              color: Colors.red.shade700,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 6,
+                                            ),
+                                            minimumSize: Size.zero,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                 ],
                               ],

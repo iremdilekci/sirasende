@@ -66,6 +66,27 @@ class AppointmentRemoteDataSource {
     }
   }
 
+  Future<Appointment> updateAppointmentStatus({
+    required String id,
+    required String status,
+  }) async {
+    try {
+      final response = await _dio.patch(
+        '${NetworkConstants.adminAppointments}/${Uri.encodeComponent(id)}/status',
+        data: {'status': status},
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw const FormatException('Expected JSON map response');
+      }
+
+      return Appointment.fromJson(data);
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   AppException _mapException(Object error) {
     if (error is DioException) {
       switch (error.type) {
@@ -87,6 +108,24 @@ class AppointmentRemoteDataSource {
           final statusCode = error.response?.statusCode;
 
           if (statusCode == 409) {
+            final data = error.response?.data;
+            if (data is Map<String, dynamic>) {
+              final detail = data['detail'] as String?;
+              if (detail != null) {
+                if (detail.contains('status transition')) {
+                  return const AppException(
+                    message: 'Randevu durumu bu aşamada güncellenemez.',
+                    code: 'INVALID_TRANSITION',
+                  );
+                } else if (detail.contains('completed before')) {
+                  return const AppException(
+                    message:
+                        'Randevu henüz bitiş saatine ulaşmadığı için tamamlanamaz.',
+                    code: 'COMPLETION_NOT_ALLOWED',
+                  );
+                }
+              }
+            }
             return const AppException(
               message:
                   'Bu saat az önce başka biri tarafından rezerve edildi. Lütfen farklı bir saat seçin.',
@@ -103,13 +142,23 @@ class AppointmentRemoteDataSource {
               code: 'FORBIDDEN',
             );
           } else if (statusCode == 404) {
+            final data = error.response?.data;
+            if (data is Map<String, dynamic>) {
+              final detail = data['detail'] as String?;
+              if (detail != null && detail.contains('Appointment not found')) {
+                return const AppException(
+                  message: 'Randevu bulunamadı veya artık geçerli değil.',
+                  code: 'APPOINTMENT_NOT_FOUND',
+                );
+              }
+            }
             return const AppException(
               message: 'İşletme bulunamadı veya artık hizmet vermiyor.',
               code: 'NOT_FOUND',
             );
           } else if (statusCode == 422) {
             return const AppException(
-              message: 'Girdiğiniz bilgileri kontrol edin.',
+              message: 'Geçersiz istek.',
               code: 'VALIDATION_ERROR',
             );
           } else if (statusCode == 400) {

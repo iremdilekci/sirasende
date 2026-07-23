@@ -36,6 +36,14 @@ class FakeAppointmentRepository implements AppointmentRepository {
   }) async {
     return [];
   }
+
+  @override
+  Future<Appointment> updateAppointmentStatus({
+    required String id,
+    required String status,
+  }) async {
+    throw UnimplementedError();
+  }
 }
 
 void main() {
