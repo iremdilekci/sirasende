@@ -3,7 +3,10 @@ from app.models.appointment import Appointment, AppointmentStatus
 from app.models.base import Base
 from app.models.business import Business
 from app.models.business_schedule import BusinessSchedule
-
+from app.models.google_calendar_connection import (
+    GoogleCalendarConnection,
+    GoogleOAuthState,
+)
 
 __all__ = [
     "AdminUser",
@@ -12,4 +15,6 @@ __all__ = [
     "Base",
     "Business",
     "BusinessSchedule",
+    "GoogleCalendarConnection",
+    "GoogleOAuthState",
 ]

@@ -9,6 +9,10 @@ import 'package:sirasende_mobile/features/business/domain/repositories/business_
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
+import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connection_status.dart';
+import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connect_result.dart';
+import 'package:sirasende_mobile/features/business/domain/repositories/google_calendar_repository.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   Business? businessResult;
@@ -85,6 +89,36 @@ class FakeBusinessRepository implements BusinessRepository {
   }
 }
 
+class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
+  GoogleCalendarConnectionStatus? statusResult;
+  GoogleCalendarConnectResult? connectResult;
+  Object? error;
+
+  int statusCalls = 0;
+  int connectCalls = 0;
+  int disconnectCalls = 0;
+
+  @override
+  Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
+    statusCalls++;
+    if (error != null) throw error!;
+    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
+  }
+
+  @override
+  Future<GoogleCalendarConnectResult> getConnectUrl() async {
+    connectCalls++;
+    if (error != null) throw error!;
+    return connectResult!;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls++;
+    if (error != null) throw error!;
+  }
+}
+
 void main() {
   group('AdminProfileScreen Widget Tests', () {
     const dummyBusiness = Business(
@@ -101,15 +135,20 @@ void main() {
     );
 
     late FakeBusinessRepository fakeRepo;
+    late FakeGoogleCalendarRepository fakeGoogleCalendarRepo;
 
     setUp(() {
       fakeRepo = FakeBusinessRepository();
       fakeRepo.businessResult = dummyBusiness;
+      fakeGoogleCalendarRepo = FakeGoogleCalendarRepository();
     });
 
     Widget createWidgetUnderTest() {
       return ProviderScope(
-        overrides: [businessRepositoryProvider.overrideWithValue(fakeRepo)],
+        overrides: [
+          businessRepositoryProvider.overrideWithValue(fakeRepo),
+          googleCalendarRepositoryProvider.overrideWithValue(fakeGoogleCalendarRepo),
+        ],
         child: const MaterialApp(home: AdminProfileScreen()),
       );
     }

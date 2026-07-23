@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +5,6 @@ import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_selection_screen.dart';
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_screen.dart';
-import 'package:sirasende_mobile/features/admin/presentation/screens/admin_home_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_profile_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
@@ -25,6 +23,10 @@ import 'package:sirasende_mobile/features/auth/presentation/providers/auth_provi
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
 import 'package:sirasende_mobile/features/auth/data/models/token_response.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
+import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connection_status.dart';
+import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connect_result.dart';
+import 'package:sirasende_mobile/features/business/domain/repositories/google_calendar_repository.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   List<Business> businesses = [];
@@ -189,6 +191,36 @@ class FakeAuthRepository implements AuthRepository {
   }
 }
 
+class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
+  GoogleCalendarConnectionStatus? statusResult;
+  GoogleCalendarConnectResult? connectResult;
+  Object? error;
+
+  int statusCalls = 0;
+  int connectCalls = 0;
+  int disconnectCalls = 0;
+
+  @override
+  Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
+    statusCalls++;
+    if (error != null) throw error!;
+    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
+  }
+
+  @override
+  Future<GoogleCalendarConnectResult> getConnectUrl() async {
+    connectCalls++;
+    if (error != null) throw error!;
+    return connectResult!;
+  }
+
+  @override
+  Future<void> disconnect() async {
+    disconnectCalls++;
+    if (error != null) throw error!;
+  }
+}
+
 void main() {
   group('MVP E2E Stabilization Tests', () {
     late FakeBusinessRepository fakeBusinessRepo;
@@ -216,10 +248,13 @@ void main() {
       ],
     );
 
+    late FakeGoogleCalendarRepository fakeGoogleCalendarRepo;
+
     setUp(() {
       fakeBusinessRepo = FakeBusinessRepository();
       fakeAppointmentRepo = FakeAppointmentRepository();
       fakeAuthRepo = FakeAuthRepository();
+      fakeGoogleCalendarRepo = FakeGoogleCalendarRepository();
 
       fakeBusinessRepo.businessResult = dummyBusiness;
       fakeBusinessRepo.businesses = [dummyBusiness];
@@ -231,6 +266,7 @@ void main() {
           businessRepositoryProvider.overrideWithValue(fakeBusinessRepo),
           appointmentRepositoryProvider.overrideWithValue(fakeAppointmentRepo),
           authRepositoryProvider.overrideWithValue(fakeAuthRepo),
+          googleCalendarRepositoryProvider.overrideWithValue(fakeGoogleCalendarRepo),
         ],
         child: MaterialApp(
           home: child,

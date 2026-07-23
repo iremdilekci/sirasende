@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from app.models.admin_user import AdminUser
     from app.models.appointment import Appointment
     from app.models.business_schedule import BusinessSchedule
+    from app.models.google_calendar_connection import GoogleCalendarConnection
 
 
 class Business(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -55,4 +56,10 @@ class Business(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="business",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+    google_connection: Mapped["GoogleCalendarConnection"] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        uselist=False,
     )

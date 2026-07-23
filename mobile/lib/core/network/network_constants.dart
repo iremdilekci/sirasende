@@ -22,4 +22,7 @@ class NetworkConstants {
   static const me = '/api/v1/auth/me';
   static const adminAppointments = '/api/v1/admin/appointments';
   static const adminBusiness = '/api/v1/admin/business';
+  static const googleCalendarStatus = '/api/v1/admin/google-calendar/status';
+  static const googleCalendarConnect = '/api/v1/admin/google-calendar/connect';
+  static const googleCalendarConnection = '/api/v1/admin/google-calendar/connection';
 }
