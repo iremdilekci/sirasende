@@ -122,12 +122,6 @@ class _AdminAppointmentsScreenState
     String appointmentId,
     String targetStatus,
   ) async {
-    final dateStr = _selectedDate != null ? _formatDate(_selectedDate!) : null;
-    final params = AdminAppointmentsParams(
-      date: dateStr,
-      status: _selectedStatus,
-    );
-
     await ref
         .read(adminAppointmentActionControllerProvider.notifier)
         .updateStatus(
@@ -141,7 +135,7 @@ class _AdminAppointmentsScreenState
                   backgroundColor: Colors.green,
                 ),
               );
-              ref.invalidate(adminAppointmentsProvider(params));
+              ref.invalidate(adminAppointmentsProvider);
             }
           },
           onError: (message) {
