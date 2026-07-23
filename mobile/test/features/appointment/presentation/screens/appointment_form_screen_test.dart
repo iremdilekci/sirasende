@@ -28,6 +28,14 @@ class FakeAppointmentRepository implements AppointmentRepository {
     if (error != null) throw error!;
     return result!;
   }
+
+  @override
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) async {
+    return [];
+  }
 }
 
 void main() {

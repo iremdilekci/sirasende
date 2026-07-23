@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:sirasende_mobile/core/router/route_names.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
@@ -87,23 +89,26 @@ class AdminHomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
 
-              Opacity(
-                opacity: 0.6,
-                child: Card(
-                  margin: EdgeInsets.zero,
-                  elevation: 0,
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+              Card(
+                margin: EdgeInsets.zero,
+                elevation: 0,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.calendar_month_outlined),
+                  title: const Text(
+                    'Randevular',
+                    style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  child: const ListTile(
-                    leading: Icon(Icons.calendar_month_outlined),
-                    title: Text(
-                      'Randevular',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text('Bir sonraki bölümde eklenecek'),
+                  subtitle: const Text(
+                    'Gelen randevuları görün ve filtreleyin',
                   ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.goNamed(RouteNames.adminAppointments);
+                  },
                 ),
               ),
               const SizedBox(height: 48),

@@ -20,6 +20,11 @@ import 'package:sirasende_mobile/features/business/presentation/widgets/business
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
+import 'package:sirasende_mobile/features/appointment/domain/repositories/appointment_repository.dart';
+import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
+import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/admin_appointments_screen.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   List<Business> businesses = [];
@@ -48,6 +53,24 @@ class FakeAuthController extends AuthController {
 
   void setUser(AdminUser? user) {
     state = AsyncValue.data(user);
+  }
+}
+
+class FakeAppointmentRepository implements AppointmentRepository {
+  @override
+  Future<Appointment> createAppointment({
+    required String businessSlug,
+    required AppointmentCreateRequest request,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) async {
+    return [];
   }
 }
 
@@ -88,6 +111,9 @@ void main() {
         overrides: [
           businessRepositoryProvider.overrideWithValue(fakeRepo),
           authControllerProvider.overrideWith(() => fakeAuthController),
+          appointmentRepositoryProvider.overrideWithValue(
+            FakeAppointmentRepository(),
+          ),
         ],
         child: const SiraSendeApp(),
       );
@@ -308,6 +334,52 @@ void main() {
 
         expect(find.byType(AppointmentSuccessScreen), findsNothing);
         expect(find.text('Geçersiz sayfa parametreleri.'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should load admin appointments screen on nested path /admin/home/appointments when authenticated',
+      (WidgetTester tester) async {
+        fakeAuthController.userValue = dummyAdmin;
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
+
+        router.go('/admin/home/appointments');
+        await tester.pumpAndSettle();
+
+        expect(find.byType(AdminAppointmentsScreen), findsOneWidget);
+        expect(find.text('Randevularım'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'should navigate from admin home to admin appointments screen on card tap',
+      (WidgetTester tester) async {
+        fakeAuthController.userValue = dummyAdmin;
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(SiraSendeApp)),
+        );
+        final router = container.read(appRouterProvider);
+        router.go('/admin/home');
+        await tester.pumpAndSettle();
+
+        // Tap on the Randevular list tile card
+        final randevularCard = find.text('Randevular');
+        expect(randevularCard, findsOneWidget);
+        await tester.tap(randevularCard);
+        await tester.pumpAndSettle();
+
+        // Should be on appointments screen
+        expect(find.byType(AdminAppointmentsScreen), findsOneWidget);
+        expect(find.text('Randevularım'), findsOneWidget);
       },
     );
   });

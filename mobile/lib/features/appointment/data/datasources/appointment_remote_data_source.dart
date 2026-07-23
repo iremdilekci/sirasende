@@ -35,6 +35,37 @@ class AppointmentRemoteDataSource {
     }
   }
 
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) async {
+    try {
+      final Map<String, dynamic> queryParameters = {};
+      if (date != null && date.isNotEmpty) {
+        queryParameters['date'] = date;
+      }
+      if (status != null && status.isNotEmpty) {
+        queryParameters['status'] = status;
+      }
+
+      final response = await _dio.get(
+        NetworkConstants.adminAppointments,
+        queryParameters: queryParameters,
+      );
+
+      final data = response.data;
+      if (data is! List) {
+        throw const FormatException('Expected JSON list response');
+      }
+
+      return data
+          .map((item) => Appointment.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   AppException _mapException(Object error) {
     if (error is DioException) {
       switch (error.type) {
@@ -61,6 +92,16 @@ class AppointmentRemoteDataSource {
                   'Bu saat az önce başka biri tarafından rezerve edildi. Lütfen farklı bir saat seçin.',
               code: 'CONFLICT',
             );
+          } else if (statusCode == 401) {
+            return const AppException(
+              message: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
+              code: 'UNAUTHORIZED',
+            );
+          } else if (statusCode == 403) {
+            return const AppException(
+              message: 'İşletme hesabı aktif değil.',
+              code: 'FORBIDDEN',
+            );
           } else if (statusCode == 404) {
             return const AppException(
               message: 'İşletme bulunamadı veya artık hizmet vermiyor.',
@@ -83,9 +124,9 @@ class AppointmentRemoteDataSource {
               code: 'SERVER_ERROR',
             );
           } else {
-            return AppException(
+            return const AppException(
               message:
-                  'Randevu oluşturulurken bir sorun oluştu. Lütfen tekrar deneyin.',
+                  'İşlem gerçekleştirilirken bir sorun oluştu. Lütfen tekrar deneyin.',
               code: 'BAD_RESPONSE',
             );
           }
@@ -104,9 +145,9 @@ class AppointmentRemoteDataSource {
     } else if (error is AppException) {
       return error;
     }
-    return AppException(
+    return const AppException(
       message:
-          'Randevu oluşturulurken bir sorun oluştu. Lütfen tekrar deneyin.',
+          'İşlem gerçekleştirilirken bir sorun oluştu. Lütfen tekrar deneyin.',
       code: 'UNKNOWN',
     );
   }

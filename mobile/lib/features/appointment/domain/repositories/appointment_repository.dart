@@ -6,4 +6,9 @@ abstract class AppointmentRepository {
     required String businessSlug,
     required AppointmentCreateRequest request,
   });
+
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  });
 }

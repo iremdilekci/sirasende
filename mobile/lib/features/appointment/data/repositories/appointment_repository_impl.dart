@@ -18,4 +18,12 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
       request: request,
     );
   }
+
+  @override
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) {
+    return _remoteDataSource.getAdminAppointments(date: date, status: status);
+  }
 }

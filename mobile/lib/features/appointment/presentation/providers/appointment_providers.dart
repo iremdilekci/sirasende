@@ -52,3 +52,30 @@ final appointmentControllerProvider =
     AsyncNotifierProvider.autoDispose<AppointmentController, Appointment?>(
       AppointmentController.new,
     );
+
+class AdminAppointmentsParams {
+  final String? date;
+  final String? status;
+
+  const AdminAppointmentsParams({this.date, this.status});
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is AdminAppointmentsParams &&
+        other.date == date &&
+        other.status == status;
+  }
+
+  @override
+  int get hashCode => Object.hash(date, status);
+}
+
+final adminAppointmentsProvider = FutureProvider.autoDispose
+    .family<List<Appointment>, AdminAppointmentsParams>((ref, params) async {
+      final repository = ref.watch(appointmentRepositoryProvider);
+      return repository.getAdminAppointments(
+        date: params.date,
+        status: params.status,
+      );
+    });
