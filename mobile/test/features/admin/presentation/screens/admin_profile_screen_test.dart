@@ -140,8 +140,8 @@ void main() {
       );
 
       // Verify opening and closing hours formatting
-      expect(find.text('09:00'), findsOneWidget);
-      expect(find.text('18:00'), findsOneWidget);
+      expect(find.text('09:00'), findsAtLeastNWidgets(1));
+      expect(find.text('18:00'), findsAtLeastNWidgets(1));
 
       // Verify slot duration choice
       expect(find.text('30 Dakika'), findsOneWidget);
@@ -279,5 +279,137 @@ void main() {
         );
       },
     );
+
+    testWidgets('should display 7 days in correct order initially', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Haftalık Çalışma Programı'), findsOneWidget);
+      expect(find.text('Pazartesi'), findsOneWidget);
+      expect(find.text('Salı'), findsOneWidget);
+      expect(find.text('Çarşamba'), findsOneWidget);
+      expect(find.text('Perşembe'), findsOneWidget);
+      expect(find.text('Cuma'), findsOneWidget);
+      expect(find.text('Cumartesi'), findsOneWidget);
+      expect(find.text('Pazar'), findsOneWidget);
+    });
+
+    testWidgets('should render times from API to UI correctly', (tester) async {
+      fakeRepo.businessResult = dummyBusiness.copyWith(
+        schedules: [
+          const BusinessSchedule(dayOfWeek: 0, startTime: '10:00:00', endTime: '16:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 1, startTime: null, endTime: null, isClosed: true),
+          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+        ],
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      // Pazartesi starts at 10:00, ends at 16:00
+      expect(find.text('10:00'), findsOneWidget);
+      expect(find.text('16:00'), findsOneWidget);
+
+      // Salı is closed
+      expect(find.text('Kapalı'), findsOneWidget);
+    });
+
+    testWidgets('closed day switch disables hours selection', (tester) async {
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      // Find switch for Pazartesi (first Switch)
+      final switchFinder = find.byType(Switch).first;
+      expect(tester.widget<Switch>(switchFinder).value, isTrue);
+
+      // Toggle it to false
+      await tester.ensureVisible(switchFinder);
+      await tester.tap(switchFinder);
+      await tester.pump();
+
+      expect(tester.widget<Switch>(switchFinder).value, isFalse);
+    });
+
+    testWidgets('submitting with invalid hour ordering shows error', (tester) async {
+      fakeRepo.businessResult = dummyBusiness.copyWith(
+        schedules: [
+          const BusinessSchedule(dayOfWeek: 0, startTime: '17:00:00', endTime: '16:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 1, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+        ],
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Kaydet'));
+      await tester.tap(find.text('Kaydet'));
+      await tester.pump();
+
+      expect(find.text('Pazartesi günü kapanış saati açılıştan sonra olmalıdır.'), findsOneWidget);
+    });
+
+    testWidgets('saving sends 7-day sorted payload with null for closed days', (tester) async {
+      fakeRepo.businessResult = dummyBusiness.copyWith(
+        schedules: [
+          const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 1, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+        ],
+      );
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      // Toggle first switch (Pazartesi) to closed
+      final switchFinder = find.byType(Switch).first;
+      await tester.ensureVisible(switchFinder);
+      await tester.tap(switchFinder);
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Kaydet'));
+      await tester.tap(find.text('Kaydet'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(fakeRepo.updateCalls, 1);
+      expect(fakeRepo.lastUpdateSchedules, isNotNull);
+      expect(fakeRepo.lastUpdateSchedules!.length, 7);
+      expect(fakeRepo.lastUpdateSchedules![0].isClosed, isTrue);
+      expect(fakeRepo.lastUpdateSchedules![0].startTime, isNull);
+    });
+
+    testWidgets('small screen size avoids layout overflow', (tester) async {
+      // Set physical size to small screen (e.g. iPhone SE: 320x568)
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1.0;
+
+      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      
+      // Reset view size
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
   });
 }
