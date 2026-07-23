@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 
 class AdminProfileScreen extends ConsumerStatefulWidget {
@@ -25,6 +26,17 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
 
   bool _initialized = false;
   String? _timeError;
+  List<BusinessSchedule>? _localSchedules;
+
+  final turkishDays = const [
+    'Pazartesi',
+    'Salı',
+    'Çarşamba',
+    'Perşembe',
+    'Cuma',
+    'Cumartesi',
+    'Pazar',
+  ];
 
   @override
   void initState() {
@@ -70,6 +82,22 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         );
       }
     }
+
+    if (business.schedules.length == 7) {
+      _localSchedules = List<BusinessSchedule>.from(business.schedules);
+    } else {
+      final defaultStart = business.workingStartTime ?? '09:00:00';
+      final defaultEnd = business.workingEndTime ?? '18:00:00';
+      _localSchedules = List.generate(7, (index) {
+        return BusinessSchedule(
+          dayOfWeek: index,
+          startTime: defaultStart,
+          endTime: defaultEnd,
+          isClosed: false,
+        );
+      });
+    }
+
     _initialized = true;
   }
 
@@ -86,10 +114,79 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     return endMinutes > startMinutes;
   }
 
+  bool _validateSchedules() {
+    if (_localSchedules == null || _localSchedules!.length != 7) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Haftalık program tam olarak 7 gün içermelidir.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return false;
+    }
+
+    for (final sched in _localSchedules!) {
+      if (!sched.isClosed) {
+        if (sched.startTime == null || sched.endTime == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${turkishDays[sched.dayOfWeek]} günü için açılış ve kapanış saatleri zorunludur.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return false;
+        }
+        final start = _parseTimeString(sched.startTime);
+        final end = _parseTimeString(sched.endTime);
+        if (start != null && end != null) {
+          final startMinutes = start.hour * 60 + start.minute;
+          final endMinutes = end.hour * 60 + end.minute;
+          if (endMinutes <= startMinutes) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
   String _formatTime(TimeOfDay time) {
     final hour = time.hour.toString().padLeft(2, '0');
     final minute = time.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _formatTimeString(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return timeStr;
+  }
+
+  TimeOfDay? _parseTimeString(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return null;
+    final parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour != null && minute != null) {
+        return TimeOfDay(hour: hour, minute: minute);
+      }
+    }
+    return null;
+  }
+
+  String _timeOfDayToBackendString(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute:00';
   }
 
   Future<void> _selectStartTime(BuildContext context) async {
@@ -118,6 +215,65 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     }
   }
 
+  void _toggleDay(int index, bool isOpen) {
+    if (_localSchedules == null) return;
+    setState(() {
+      final sched = _localSchedules![index];
+      final defaultStart = _startTime != null ? _timeOfDayToBackendString(_startTime!) : '09:00:00';
+      final defaultEnd = _endTime != null ? _timeOfDayToBackendString(_endTime!) : '18:00:00';
+
+      _localSchedules![index] = sched.copyWith(
+        isClosed: !isOpen,
+        startTime: isOpen ? (sched.startTime ?? defaultStart) : sched.startTime,
+        endTime: isOpen ? (sched.endTime ?? defaultEnd) : sched.endTime,
+      );
+    });
+  }
+
+  Future<void> _selectDayStartTime(BuildContext context, int index) async {
+    final sched = _localSchedules![index];
+    final parsed = _parseTimeString(sched.startTime) ?? const TimeOfDay(hour: 9, minute: 0);
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: parsed,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _localSchedules![index] = sched.copyWith(
+          startTime: _timeOfDayToBackendString(picked),
+        );
+      });
+    }
+  }
+
+  Future<void> _selectDayEndTime(BuildContext context, int index) async {
+    final sched = _localSchedules![index];
+    final parsed = _parseTimeString(sched.endTime) ?? const TimeOfDay(hour: 18, minute: 0);
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: parsed,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        _localSchedules![index] = sched.copyWith(
+          endTime: _timeOfDayToBackendString(picked),
+        );
+      });
+    }
+  }
+
   String _mapErrorMessage(Object? error) {
     if (error is AppException) {
       return error.message;
@@ -135,10 +291,27 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       return;
     }
 
+    if (!_validateSchedules()) {
+      return;
+    }
+
     final startStr = _startTime != null
         ? _timeOfDayToString(_startTime!)
         : null;
     final endStr = _endTime != null ? _timeOfDayToString(_endTime!) : null;
+
+    final schedulesPayload = _localSchedules?.map((sched) {
+      if (sched.isClosed) {
+        return BusinessSchedule(
+          dayOfWeek: sched.dayOfWeek,
+          isClosed: true,
+          startTime: null,
+          endTime: null,
+        );
+      } else {
+        return sched;
+      }
+    }).toList();
 
     ref
         .read(adminBusinessUpdateControllerProvider.notifier)
@@ -150,6 +323,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           workingStartTime: startStr,
           workingEndTime: endStr,
           slotDurationMinutes: _slotDuration,
+          schedules: schedulesPayload,
           onSuccess: () {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -279,7 +453,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                     const SizedBox(height: 24),
 
                     Text(
-                      'Çalışma Ayarları',
+                      'Varsayılan Çalışma Saatleri (Fallback)',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -373,6 +547,123 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 24),
+
+                    Text(
+                      'Haftalık Çalışma Programı',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    if (_localSchedules != null)
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: 7,
+                        itemBuilder: (context, index) {
+                          final sched = _localSchedules![index];
+                          final isOpen = !sched.isClosed;
+                          final dayName = turkishDays[sched.dayOfWeek];
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          dayName,
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            isOpen ? 'Açık' : 'Kapalı',
+                                            style: TextStyle(
+                                              color: isOpen ? Colors.green : Colors.grey,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Switch(
+                                            value: isOpen,
+                                            onChanged: isSaving
+                                                ? null
+                                                : (val) => _toggleDay(index, val),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: (!isOpen || isSaving)
+                                              ? null
+                                              : () => _selectDayStartTime(context, index),
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Opacity(
+                                            opacity: isOpen ? 1.0 : 0.5,
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(
+                                                labelText: 'Açılış Saati',
+                                                border: OutlineInputBorder(),
+                                                prefixIcon: Icon(Icons.access_time),
+                                              ),
+                                              child: Text(
+                                                sched.startTime != null
+                                                    ? _formatTimeString(sched.startTime!)
+                                                    : '--:--',
+                                                style: Theme.of(context).textTheme.bodyLarge,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: (!isOpen || isSaving)
+                                              ? null
+                                              : () => _selectDayEndTime(context, index),
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Opacity(
+                                            opacity: isOpen ? 1.0 : 0.5,
+                                            child: InputDecorator(
+                                              decoration: const InputDecoration(
+                                                labelText: 'Kapanış Saati',
+                                                border: OutlineInputBorder(),
+                                                prefixIcon: Icon(Icons.access_time_filled),
+                                              ),
+                                              child: Text(
+                                                sched.endTime != null
+                                                    ? _formatTimeString(sched.endTime!)
+                                                    : '--:--',
+                                                style: Theme.of(context).textTheme.bodyLarge,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+
                     const SizedBox(height: 32),
 
                     // Save Button

@@ -26,6 +26,8 @@ import 'package:sirasende_mobile/features/appointment/presentation/providers/app
 import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_appointments_screen.dart';
 
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
+
 class FakeBusinessRepository implements BusinessRepository {
   List<Business> businesses = [];
   Business? business;
@@ -54,6 +56,7 @@ class FakeBusinessRepository implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
+    List<BusinessSchedule>? schedules,
   }) => throw UnimplementedError();
 }
 

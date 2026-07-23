@@ -6,6 +6,7 @@ import 'package:sirasende_mobile/core/network/dio_provider.dart';
 import 'package:sirasende_mobile/features/business/data/datasources/business_remote_data_source.dart';
 import 'package:sirasende_mobile/features/business/data/repositories/business_repository_impl.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 
@@ -77,6 +78,7 @@ class AdminBusinessUpdateController extends AsyncNotifier<void> {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
+    List<BusinessSchedule>? schedules,
     required VoidCallback onSuccess,
     required void Function(String message) onError,
   }) async {
@@ -91,6 +93,7 @@ class AdminBusinessUpdateController extends AsyncNotifier<void> {
         workingStartTime: workingStartTime,
         workingEndTime: workingEndTime,
         slotDurationMinutes: slotDurationMinutes,
+        schedules: schedules,
       );
       ref.invalidate(adminBusinessProvider);
       onSuccess();

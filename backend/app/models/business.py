@@ -10,6 +10,7 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 if TYPE_CHECKING:
     from app.models.admin_user import AdminUser
     from app.models.appointment import Appointment
+    from app.models.business_schedule import BusinessSchedule
 
 
 class Business(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -46,6 +47,11 @@ class Business(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         passive_deletes=True,
     )
     admin_users: Mapped[list["AdminUser"]] = relationship(
+        back_populates="business",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    schedules: Mapped[list["BusinessSchedule"]] = relationship(
         back_populates="business",
         cascade="all, delete-orphan",
         passive_deletes=True,

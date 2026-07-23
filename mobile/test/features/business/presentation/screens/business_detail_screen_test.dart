@@ -9,6 +9,7 @@ import 'package:sirasende_mobile/features/business/domain/repositories/business_
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
 import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   Business? businessResult;
@@ -22,6 +23,7 @@ class FakeBusinessRepository implements BusinessRepository {
   int getSlotsCount = 0;
   String? lastSlotsSlug;
   String? lastSlotsDate;
+  List<BusinessSchedule>? lastUpdateSchedules;
 
   @override
   Future<List<Business>> getBusinesses() {
@@ -61,7 +63,12 @@ class FakeBusinessRepository implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
-  }) => throw UnimplementedError();
+    List<BusinessSchedule>? schedules,
+  }) async {
+    lastUpdateSchedules = schedules;
+    if (error != null) throw error!;
+    return businessResult!;
+  }
 }
 
 void main() {

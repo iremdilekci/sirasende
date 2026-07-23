@@ -8,6 +8,7 @@ import 'package:sirasende_mobile/features/auth/presentation/providers/auth_provi
 import 'package:sirasende_mobile/features/onboarding/presentation/screens/role_selection_screen.dart';
 import 'package:sirasende_mobile/features/customer/presentation/screens/customer_business_list_screen.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
@@ -19,7 +20,10 @@ class FakeAuthController extends AuthController {
   }
 }
 
+
 class FakeBusinessRepository implements BusinessRepository {
+  List<BusinessSchedule>? lastUpdateSchedules;
+
   @override
   Future<List<Business>> getBusinesses() async {
     return [
@@ -62,7 +66,22 @@ class FakeBusinessRepository implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
-  }) => throw UnimplementedError();
+    List<BusinessSchedule>? schedules,
+  }) async {
+    lastUpdateSchedules = schedules;
+    return Business(
+      id: '1',
+      name: name,
+      slug: 'berber-ahmet',
+      description: description,
+      phone: phone,
+      address: address,
+      workingStartTime: workingStartTime,
+      workingEndTime: workingEndTime,
+      slotDurationMinutes: slotDurationMinutes ?? 30,
+      isActive: true,
+    );
+  }
 }
 
 void main() {

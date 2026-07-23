@@ -1,9 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 
 class FakeBusinessRepository implements BusinessRepository {
   List<Business>? businessesResult;
@@ -11,6 +14,7 @@ class FakeBusinessRepository implements BusinessRepository {
   List<Slot>? slotsResult;
   String? lastSlug;
   String? lastDate;
+  List<BusinessSchedule>? lastUpdateSchedules;
   Object? error;
 
   @override
@@ -36,8 +40,14 @@ class FakeBusinessRepository implements BusinessRepository {
     return slotsResult ?? [];
   }
 
+  int getAdminBusinessCount = 0;
+
   @override
-  Future<Business> getAdminBusiness() => throw UnimplementedError();
+  Future<Business> getAdminBusiness() async {
+    getAdminBusinessCount++;
+    if (error != null) throw error!;
+    return businessResult!;
+  }
 
   @override
   Future<Business> updateAdminBusiness({
@@ -48,7 +58,12 @@ class FakeBusinessRepository implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
-  }) => throw UnimplementedError();
+    List<BusinessSchedule>? schedules,
+  }) async {
+    lastUpdateSchedules = schedules;
+    if (error != null) throw error!;
+    return businessResult!;
+  }
 }
 
 void main() {
@@ -199,5 +214,49 @@ void main() {
         expect(result[0].startTime, '10:00');
       },
     );
+
+    test('adminBusinessUpdateController invalidates adminBusinessProvider on success', () async {
+      fakeRepo.businessResult = dummyBusiness;
+
+      // Trigger initial read
+      await container.read(adminBusinessProvider.future);
+      expect(fakeRepo.getAdminBusinessCount, 1);
+
+      final controller = container.read(adminBusinessUpdateControllerProvider.notifier);
+      
+      var successCalled = false;
+      await controller.updateBusiness(
+        name: 'Updated Name',
+        schedules: [
+          const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false)
+        ],
+        onSuccess: () => successCalled = true,
+        onError: (msg) {},
+      );
+
+      expect(successCalled, isTrue);
+
+      // Re-read provider to trigger refetch
+      await container.read(adminBusinessProvider.future);
+      expect(fakeRepo.getAdminBusinessCount, 2);
+
+      expect(fakeRepo.lastUpdateSchedules, isNotNull);
+      expect(fakeRepo.lastUpdateSchedules![0].dayOfWeek, 0);
+    });
+
+    test('adminBusinessUpdateController triggers onError on exception', () async {
+      fakeRepo.error = const AppException(message: 'Validasyon Hatası', code: 'VALIDATION_ERROR');
+
+      final controller = container.read(adminBusinessUpdateControllerProvider.notifier);
+      
+      String? errorMessage;
+      await controller.updateBusiness(
+        name: 'Updated Name',
+        onSuccess: () {},
+        onError: (msg) => errorMessage = msg,
+      );
+
+      expect(errorMessage, 'Validasyon Hatası');
+    });
   });
 }
