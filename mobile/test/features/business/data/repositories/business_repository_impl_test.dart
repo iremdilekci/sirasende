@@ -5,12 +5,15 @@ import 'package:sirasende_mobile/features/business/data/repositories/business_re
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
+
 class FakeRemoteDataSource extends BusinessRemoteDataSource {
   List<Business>? businessesResult;
   Business? businessResult;
   List<Slot>? slotsResult;
   String? lastSlug;
   String? lastDate;
+  List<BusinessSchedule>? lastUpdateSchedules;
   Object? error;
 
   FakeRemoteDataSource() : super(Dio());
@@ -50,8 +53,10 @@ class FakeRemoteDataSource extends BusinessRemoteDataSource {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
+    List<BusinessSchedule>? schedules,
   }) async {
     if (error != null) throw error!;
+    lastUpdateSchedules = schedules;
     return Business(
       id: businessResult!.id,
       name: name,
@@ -180,5 +185,25 @@ void main() {
         expect(result.slotDurationMinutes, 45);
       },
     );
+
+    test('updateAdminBusiness should propagate schedules list correctly', () async {
+      fakeDataSource.businessResult = const Business(
+        id: '1',
+        name: 'Test',
+        slug: 'test',
+        slotDurationMinutes: 30,
+        isActive: true,
+      );
+      final schedules = [
+        const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+      ];
+      
+      await repository.updateAdminBusiness(
+        name: 'Test',
+        schedules: schedules,
+      );
+
+      expect(fakeDataSource.lastUpdateSchedules, schedules);
+    });
   });
 }

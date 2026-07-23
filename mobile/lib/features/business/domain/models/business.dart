@@ -1,3 +1,5 @@
+import 'business_schedule.dart';
+
 class Business {
   final String id;
   final String name;
@@ -11,6 +13,7 @@ class Business {
   final String? workingEndTime;
   final String? createdAt;
   final String? updatedAt;
+  final List<BusinessSchedule> schedules;
 
   const Business({
     required this.id,
@@ -25,6 +28,7 @@ class Business {
     this.workingEndTime,
     this.createdAt,
     this.updatedAt,
+    this.schedules = const [],
   });
 
   factory Business.fromJson(Map<String, dynamic> json) {
@@ -52,6 +56,15 @@ class Business {
       throw const FormatException('Missing required field: is_active');
     }
 
+    final schedulesJson = json['schedules'] as List<dynamic>?;
+    List<BusinessSchedule> parsedSchedules = [];
+    if (schedulesJson != null) {
+      parsedSchedules = schedulesJson
+          .map((item) => BusinessSchedule.fromJson(item as Map<String, dynamic>))
+          .toList();
+      parsedSchedules.sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek));
+    }
+
     return Business(
       id: id,
       name: name,
@@ -65,6 +78,7 @@ class Business {
       workingEndTime: json['working_end_time'] as String?,
       createdAt: json['created_at'] as String?,
       updatedAt: json['updated_at'] as String?,
+      schedules: parsedSchedules,
     );
   }
 
@@ -82,7 +96,40 @@ class Business {
       'working_end_time': workingEndTime,
       'created_at': createdAt,
       'updated_at': updatedAt,
+      'schedules': schedules.map((item) => item.toJson()).toList(),
     };
+  }
+
+  Business copyWith({
+    String? id,
+    String? name,
+    String? slug,
+    String? address,
+    String? phone,
+    String? description,
+    int? slotDurationMinutes,
+    bool? isActive,
+    String? workingStartTime,
+    String? workingEndTime,
+    String? createdAt,
+    String? updatedAt,
+    List<BusinessSchedule>? schedules,
+  }) {
+    return Business(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      slug: slug ?? this.slug,
+      address: address ?? this.address,
+      phone: phone ?? this.phone,
+      description: description ?? this.description,
+      slotDurationMinutes: slotDurationMinutes ?? this.slotDurationMinutes,
+      isActive: isActive ?? this.isActive,
+      workingStartTime: workingStartTime ?? this.workingStartTime,
+      workingEndTime: workingEndTime ?? this.workingEndTime,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      schedules: schedules ?? this.schedules,
+    );
   }
 
   @override
@@ -100,7 +147,16 @@ class Business {
         other.workingStartTime == workingStartTime &&
         other.workingEndTime == workingEndTime &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        _listEquals(other.schedules, schedules);
+  }
+
+  bool _listEquals(List<BusinessSchedule> a, List<BusinessSchedule> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   @override
@@ -118,6 +174,7 @@ class Business {
       workingEndTime,
       createdAt,
       updatedAt,
+      Object.hashAll(schedules),
     );
   }
 }

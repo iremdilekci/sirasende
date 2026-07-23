@@ -12,10 +12,13 @@ import 'package:sirasende_mobile/features/customer/presentation/screens/customer
 import 'package:sirasende_mobile/features/business/presentation/widgets/business_card.dart';
 import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
+
 class FakeBusinessRepository implements BusinessRepository {
   List<Business>? businessesResult;
   Object? error;
   int getCount = 0;
+  List<BusinessSchedule>? lastUpdateSchedules;
 
   @override
   Future<List<Business>> getBusinesses() async {
@@ -49,7 +52,23 @@ class FakeBusinessRepository implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
-  }) => throw UnimplementedError();
+    List<BusinessSchedule>? schedules,
+  }) async {
+    lastUpdateSchedules = schedules;
+    if (error != null) throw error!;
+    return Business(
+      id: '1',
+      name: name,
+      slug: 'berber-ahmet',
+      description: description,
+      phone: phone,
+      address: address,
+      workingStartTime: workingStartTime,
+      workingEndTime: workingEndTime,
+      slotDurationMinutes: slotDurationMinutes ?? 30,
+      isActive: true,
+    );
+  }
 }
 
 void main() {

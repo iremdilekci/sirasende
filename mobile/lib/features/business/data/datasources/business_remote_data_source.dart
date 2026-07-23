@@ -2,7 +2,9 @@ import 'package:dio/dio.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/network/network_constants.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
+
 
 class BusinessRemoteDataSource {
   final Dio _dio;
@@ -100,9 +102,10 @@ class BusinessRemoteDataSource {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
+    List<BusinessSchedule>? schedules,
   }) async {
     try {
-      final payload = {
+      final payload = <String, dynamic>{
         'name': name,
         'description': description,
         'phone': phone,
@@ -111,6 +114,9 @@ class BusinessRemoteDataSource {
         'working_end_time': workingEndTime,
         'slot_duration_minutes': slotDurationMinutes,
       };
+      if (schedules != null) {
+        payload['schedules'] = schedules.map((item) => item.toJson()).toList();
+      }
       final response = await _dio.patch(
         NetworkConstants.adminBusiness,
         data: payload,

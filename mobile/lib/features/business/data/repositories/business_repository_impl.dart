@@ -3,6 +3,8 @@ import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
 
+import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
+
 class BusinessRepositoryImpl implements BusinessRepository {
   final BusinessRemoteDataSource _remoteDataSource;
 
@@ -40,6 +42,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
     String? workingStartTime,
     String? workingEndTime,
     int? slotDurationMinutes,
+    List<BusinessSchedule>? schedules,
   }) {
     return _remoteDataSource.updateAdminBusiness(
       name: name,
@@ -49,6 +52,7 @@ class BusinessRepositoryImpl implements BusinessRepository {
       workingStartTime: workingStartTime,
       workingEndTime: workingEndTime,
       slotDurationMinutes: slotDurationMinutes,
+      schedules: schedules,
     );
   }
 }
