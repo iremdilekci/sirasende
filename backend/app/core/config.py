@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
 
+    google_client_id: str | None = None
+    google_client_secret: str | None = None
+    google_oauth_redirect_uri: str | None = None
+    google_token_encryption_key: str | None = None
+    google_oauth_success_redirect_uri: str | None = None
+    google_oauth_failure_redirect_uri: str | None = None
+
 
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
