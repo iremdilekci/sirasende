@@ -37,6 +37,34 @@ class FakeAppointmentRepository implements AppointmentRepository {
     if (error != null) throw error!;
     return listResult!;
   }
+
+  int updateCallCount = 0;
+  String? lastUpdateId;
+  String? lastUpdateStatus;
+
+  @override
+  Future<Appointment> updateAppointmentStatus({
+    required String id,
+    required String status,
+  }) async {
+    updateCallCount++;
+    lastUpdateId = id;
+    lastUpdateStatus = status;
+    if (error != null) throw error!;
+    return result ??
+        const Appointment(
+          id: 'dummy',
+          businessId: 'dummy',
+          customerName: 'dummy',
+          customerPhone: 'dummy',
+          appointmentDate: 'dummy',
+          startTime: 'dummy',
+          endTime: 'dummy',
+          status: 'confirmed',
+          createdAt: 'dummy',
+          updatedAt: 'dummy',
+        );
+  }
 }
 
 void main() {
@@ -86,52 +114,60 @@ void main() {
       () async {
         fakeRepo.result = dummyAppointment;
 
-        await container
-            .read(appointmentControllerProvider.notifier)
-            .bookAppointment(
-              businessSlug: 'berber-ahmet',
-              request: dummyRequest,
-            );
+        final controller = container.read(
+          appointmentControllerProvider.notifier,
+        );
+        await controller.bookAppointment(
+          businessSlug: 'berber-ahmet',
+          request: dummyRequest,
+        );
 
         final state = container.read(appointmentControllerProvider);
-        expect(state.value, dummyAppointment);
+        expect(state, AsyncValue<Appointment?>.data(dummyAppointment));
         expect(fakeRepo.callCount, 1);
       },
     );
 
     test('should set state to error when bookAppointment fails', () async {
       fakeRepo.error = const AppException(
-        message: 'Conflict error occurred',
+        message: 'Conflict',
         code: 'CONFLICT',
       );
 
-      await container
-          .read(appointmentControllerProvider.notifier)
-          .bookAppointment(businessSlug: 'berber-ahmet', request: dummyRequest);
+      final controller = container.read(appointmentControllerProvider.notifier);
+      await controller.bookAppointment(
+        businessSlug: 'berber-ahmet',
+        request: dummyRequest,
+      );
 
       final state = container.read(appointmentControllerProvider);
       expect(state.hasError, isTrue);
-      expect((state.error as AppException).code, 'CONFLICT');
-      expect(fakeRepo.callCount, 1);
+      expect(
+        state.error,
+        isA<AppException>().having((e) => e.code, 'code', 'CONFLICT'),
+      );
     });
 
     test('should prevent double submission during loading state', () async {
       fakeRepo.result = dummyAppointment;
 
-      // Start first submission
-      final f1 = container
-          .read(appointmentControllerProvider.notifier)
-          .bookAppointment(businessSlug: 'berber-ahmet', request: dummyRequest);
+      final controller = container.read(appointmentControllerProvider.notifier);
 
-      // Attempt second submission immediately
-      final f2 = container
-          .read(appointmentControllerProvider.notifier)
-          .bookAppointment(businessSlug: 'berber-ahmet', request: dummyRequest);
+      // Trigger first submission
+      final future1 = controller.bookAppointment(
+        businessSlug: 'berber-ahmet',
+        request: dummyRequest,
+      );
 
-      await f1;
-      await f2;
+      // Trigger second submission immediately
+      final future2 = controller.bookAppointment(
+        businessSlug: 'berber-ahmet',
+        request: dummyRequest,
+      );
 
-      expect(fakeRepo.callCount, 1); // Only called once!
+      await Future.wait([future1, future2]);
+
+      expect(fakeRepo.callCount, 1);
     });
   });
 
@@ -165,16 +201,22 @@ void main() {
     );
 
     test('AdminAppointmentsParams equality and hashCode overrides', () {
-      const p1 = AdminAppointmentsParams(date: '2026-07-22', status: 'pending');
-      const p2 = AdminAppointmentsParams(date: '2026-07-22', status: 'pending');
-      const p3 = AdminAppointmentsParams(
+      const params1 = AdminAppointmentsParams(
         date: '2026-07-22',
-        status: 'completed',
+        status: 'pending',
+      );
+      const params2 = AdminAppointmentsParams(
+        date: '2026-07-22',
+        status: 'pending',
+      );
+      const params3 = AdminAppointmentsParams(
+        date: '2026-07-23',
+        status: 'pending',
       );
 
-      expect(p1, p2);
-      expect(p1.hashCode, p2.hashCode);
-      expect(p1, isNot(p3));
+      expect(params1, params2);
+      expect(params1.hashCode, params2.hashCode);
+      expect(params1, isNot(params3));
     });
 
     test(
@@ -220,6 +262,80 @@ void main() {
       );
 
       sub.close();
+    });
+  });
+
+  group('AdminAppointmentActionController Tests', () {
+    late FakeAppointmentRepository fakeRepo;
+    late ProviderContainer container;
+
+    setUp(() {
+      fakeRepo = FakeAppointmentRepository();
+      container = ProviderContainer(
+        overrides: [appointmentRepositoryProvider.overrideWithValue(fakeRepo)],
+      );
+    });
+
+    tearDown(() {
+      container.dispose();
+    });
+
+    test(
+      'should invoke repository and success callback on successful update',
+      () async {
+        bool successCalled = false;
+        bool errorCalled = false;
+
+        final controller = container.read(
+          adminAppointmentActionControllerProvider.notifier,
+        );
+
+        await controller.updateStatus(
+          id: 'appointment-1',
+          status: 'confirmed',
+          onSuccess: () {
+            successCalled = true;
+          },
+          onError: (msg) {
+            errorCalled = true;
+          },
+        );
+
+        expect(successCalled, isTrue);
+        expect(errorCalled, isFalse);
+        expect(fakeRepo.updateCallCount, 1);
+        expect(fakeRepo.lastUpdateId, 'appointment-1');
+        expect(fakeRepo.lastUpdateStatus, 'confirmed');
+      },
+    );
+
+    test('should invoke error callback on update failure', () async {
+      bool successCalled = false;
+      String? errorMessage;
+
+      fakeRepo.error = const AppException(
+        message: 'Completion not allowed before end time',
+        code: 'COMPLETION_NOT_ALLOWED',
+      );
+
+      final controller = container.read(
+        adminAppointmentActionControllerProvider.notifier,
+      );
+
+      await controller.updateStatus(
+        id: 'appointment-1',
+        status: 'completed',
+        onSuccess: () {
+          successCalled = true;
+        },
+        onError: (msg) {
+          errorMessage = msg;
+        },
+      );
+
+      expect(successCalled, isFalse);
+      expect(errorMessage, 'Completion not allowed before end time');
+      expect(fakeRepo.updateCallCount, 1);
     });
   });
 }

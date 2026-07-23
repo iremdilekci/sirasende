@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/network/dio_provider.dart';
 import 'package:sirasende_mobile/features/appointment/data/datasources/appointment_remote_data_source.dart';
 import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
@@ -79,3 +80,45 @@ final adminAppointmentsProvider = FutureProvider.autoDispose
         status: params.status,
       );
     });
+
+class AdminAppointmentActionController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    // idle state
+  }
+
+  Future<void> updateStatus({
+    required String id,
+    required String status,
+    required void Function() onSuccess,
+    required void Function(String message) onError,
+  }) async {
+    if (state.isLoading) return;
+
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(() async {
+      final repository = ref.read(appointmentRepositoryProvider);
+      await repository.updateAppointmentStatus(id: id, status: status);
+    });
+
+    if (result.hasError) {
+      final error = result.error;
+      final message = error is AppException
+          ? error.message
+          : 'İşlem gerçekleştirilirken bir sorun oluştu. Lütfen tekrar deneyin.';
+      state = AsyncValue.error(
+        error ?? message,
+        result.stackTrace ?? StackTrace.current,
+      );
+      onError(message);
+    } else {
+      state = const AsyncValue.data(null);
+      onSuccess();
+    }
+  }
+}
+
+final adminAppointmentActionControllerProvider =
+    AsyncNotifierProvider.autoDispose<AdminAppointmentActionController, void>(
+      AdminAppointmentActionController.new,
+    );

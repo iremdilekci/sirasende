@@ -15,6 +15,11 @@ class FakeAppointmentRepository implements AppointmentRepository {
   String? lastDate;
   String? lastStatus;
 
+  int updateCallCount = 0;
+  String? lastUpdateId;
+  String? lastUpdateStatus;
+  Object? updateError;
+
   @override
   Future<Appointment> createAppointment({
     required String businessSlug,
@@ -33,6 +38,30 @@ class FakeAppointmentRepository implements AppointmentRepository {
     lastStatus = status;
     if (error != null) throw error!;
     return listResult;
+  }
+
+  @override
+  Future<Appointment> updateAppointmentStatus({
+    required String id,
+    required String status,
+  }) async {
+    updateCallCount++;
+    lastUpdateId = id;
+    lastUpdateStatus = status;
+    if (updateError != null) throw updateError!;
+    return Appointment(
+      id: id,
+      businessId: 'b1',
+      customerName: 'Ahmet Can',
+      customerPhone: '05554443322',
+      customerNote: 'Saç kesimi',
+      appointmentDate: '2026-07-22',
+      startTime: '09:00',
+      endTime: '09:30',
+      status: status,
+      createdAt: '2026-07-22T08:00:00Z',
+      updatedAt: '2026-07-22T08:00:00Z',
+    );
   }
 }
 
@@ -173,5 +202,98 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'should show Onayla and Iptal Et buttons for pending status and trigger dialog and success',
+      (WidgetTester tester) async {
+        fakeRepo.listResult = [dummyAppointment];
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        // Check action buttons exist
+        final onaylaBtn = find.widgetWithText(FilledButton, 'Onayla');
+        final iptalBtn = find.widgetWithText(OutlinedButton, 'İptal Et');
+        expect(onaylaBtn, findsOneWidget);
+        expect(iptalBtn, findsOneWidget);
+
+        // Tap on Onayla button
+        await tester.tap(onaylaBtn);
+        await tester.pumpAndSettle();
+
+        // Verify AlertDialog is shown
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.text('Onayla Onayı'), findsOneWidget);
+        expect(
+          find.text('Bu randevuyu onaylamak istiyor musunuz?'),
+          findsOneWidget,
+        );
+
+        // Tap Evet, Devam Et to execute
+        await tester.tap(find.text('Evet, Devam Et'));
+        await tester.pumpAndSettle();
+
+        // Verify repository update call
+        expect(fakeRepo.updateCallCount, 1);
+        expect(fakeRepo.lastUpdateId, 'a1b2');
+        expect(fakeRepo.lastUpdateStatus, 'confirmed');
+
+        // SnackBar showing success
+        expect(
+          find.text('Randevu durumu başarıyla güncellendi.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'should show Tamamla and Iptal Et buttons for confirmed status and handle completion not allowed error',
+      (WidgetTester tester) async {
+        final dummyConfirmedAppointment = Appointment(
+          id: 'a1b2',
+          businessId: 'b1',
+          customerName: 'Ahmet Can',
+          customerPhone: '05554443322',
+          customerNote: 'Saç kesimi',
+          appointmentDate: '2026-07-22',
+          startTime: '09:00',
+          endTime: '09:30',
+          status: 'confirmed',
+          createdAt: '2026-07-22T08:00:00Z',
+          updatedAt: '2026-07-22T08:00:00Z',
+        );
+        fakeRepo.listResult = [dummyConfirmedAppointment];
+        fakeRepo.updateError = const AppException(
+          message: 'Randevu henüz bitiş saatine ulaşmadığı için tamamlanamaz.',
+          code: 'COMPLETION_NOT_ALLOWED',
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        // Check action buttons exist
+        final tamamlaBtn = find.widgetWithText(FilledButton, 'Tamamla');
+        final iptalBtn = find.widgetWithText(OutlinedButton, 'İptal Et');
+        expect(tamamlaBtn, findsOneWidget);
+        expect(iptalBtn, findsOneWidget);
+
+        // Tap on Tamamla button
+        await tester.tap(tamamlaBtn);
+        await tester.pumpAndSettle();
+
+        // Verify Dialog and tap Evet
+        expect(find.text('Tamamla Onayı'), findsOneWidget);
+        await tester.tap(find.text('Evet, Devam Et'));
+        await tester.pumpAndSettle();
+
+        // Verify SnackBar showing translated completion not allowed message
+        expect(
+          find.text(
+            'Randevu henüz bitiş saatine ulaşmadığı için tamamlanamaz.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

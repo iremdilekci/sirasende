@@ -11,4 +11,9 @@ abstract class AppointmentRepository {
     String? date,
     String? status,
   });
+
+  Future<Appointment> updateAppointmentStatus({
+    required String id,
+    required String status,
+  });
 }

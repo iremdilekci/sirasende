@@ -179,7 +179,7 @@ void main() {
                 .having(
                   (e) => e.message,
                   'message',
-                  contains('Girdiğiniz bilgileri kontrol edin'),
+                  contains('Geçersiz istek'),
                 ),
           ),
         );
@@ -285,6 +285,124 @@ void main() {
           ),
         );
       });
+    });
+
+    group('updateAppointmentStatus Tests', () {
+      const dummyUpdateResponse = {
+        'id': 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+        'business_id': 'f5cc002d-3ed5-478e-3614-58f86d80b65c',
+        'customer_name': 'Ahmet Can',
+        'customer_phone': '05554443322',
+        'customer_note': 'Saç tıraşı',
+        'appointment_date': '2026-07-22',
+        'start_time': '09:00',
+        'end_time': '09:30',
+        'status': 'confirmed',
+        'created_at': '2026-07-22T08:00:00Z',
+        'updated_at': '2026-07-22T08:00:00Z',
+      };
+
+      test('should execute PATCH with correct path and body', () async {
+        mockAdapter.handler = (options) {
+          expect(options.method, 'PATCH');
+          expect(
+            options.path,
+            '/api/v1/admin/appointments/a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d/status',
+          );
+          expect(options.data['status'], 'confirmed');
+          return jsonResponse(dummyUpdateResponse, 200);
+        };
+
+        final result = await dataSource.updateAppointmentStatus(
+          id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+          status: 'confirmed',
+        );
+
+        expect(result.status, 'confirmed');
+        expect(result.id, 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d');
+      });
+
+      test(
+        'should map 409 status transition error to INVALID_TRANSITION',
+        () async {
+          mockAdapter.handler = (options) {
+            return jsonResponse({
+              'detail': 'Invalid appointment status transition',
+            }, 409);
+          };
+
+          expect(
+            () => dataSource.updateAppointmentStatus(
+              id: 'id-1',
+              status: 'completed',
+            ),
+            throwsA(
+              isA<AppException>()
+                  .having((e) => e.code, 'code', 'INVALID_TRANSITION')
+                  .having(
+                    (e) => e.message,
+                    'message',
+                    contains('Randevu durumu bu aşamada güncellenemez'),
+                  ),
+            ),
+          );
+        },
+      );
+
+      test(
+        'should map 409 completion before end time error to COMPLETION_NOT_ALLOWED',
+        () async {
+          mockAdapter.handler = (options) {
+            return jsonResponse({
+              'detail':
+                  'Appointment cannot be completed before its end time has passed.',
+            }, 409);
+          };
+
+          expect(
+            () => dataSource.updateAppointmentStatus(
+              id: 'id-1',
+              status: 'completed',
+            ),
+            throwsA(
+              isA<AppException>()
+                  .having((e) => e.code, 'code', 'COMPLETION_NOT_ALLOWED')
+                  .having(
+                    (e) => e.message,
+                    'message',
+                    contains(
+                      'henüz bitiş saatine ulaşmadığı için tamamlanamaz',
+                    ),
+                  ),
+            ),
+          );
+        },
+      );
+
+      test(
+        'should map 404 appointment not found error to APPOINTMENT_NOT_FOUND',
+        () async {
+          mockAdapter.handler = (options) {
+            return jsonResponse({'detail': 'Appointment not found'}, 404);
+          };
+
+          expect(
+            () => dataSource.updateAppointmentStatus(
+              id: 'id-1',
+              status: 'confirmed',
+            ),
+            throwsA(
+              isA<AppException>()
+                  .having((e) => e.code, 'code', 'APPOINTMENT_NOT_FOUND')
+                  .having(
+                    (e) => e.message,
+                    'message',
+                    contains('Randevu bulunamadı veya artık geçerli değil'),
+                  ),
+            ),
+          );
+        },
+      );
     });
   });
 }
