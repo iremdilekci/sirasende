@@ -25,4 +25,30 @@ class BusinessRepositoryImpl implements BusinessRepository {
   }) {
     return _remoteDataSource.fetchBusinessSlots(slug, date);
   }
+
+  @override
+  Future<Business> getAdminBusiness() {
+    return _remoteDataSource.fetchAdminBusiness();
+  }
+
+  @override
+  Future<Business> updateAdminBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+  }) {
+    return _remoteDataSource.updateAdminBusiness(
+      name: name,
+      description: description,
+      phone: phone,
+      address: address,
+      workingStartTime: workingStartTime,
+      workingEndTime: workingEndTime,
+      slotDurationMinutes: slotDurationMinutes,
+    );
+  }
 }

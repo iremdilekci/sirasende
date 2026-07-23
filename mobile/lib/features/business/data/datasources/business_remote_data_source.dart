@@ -79,6 +79,52 @@ class BusinessRemoteDataSource {
     }
   }
 
+  Future<Business> fetchAdminBusiness() async {
+    try {
+      final response = await _dio.get(NetworkConstants.adminBusiness);
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw const FormatException('Expected JSON map response');
+      }
+      return Business.fromJson(data);
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
+  Future<Business> updateAdminBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+  }) async {
+    try {
+      final payload = {
+        'name': name,
+        'description': description,
+        'phone': phone,
+        'address': address,
+        'working_start_time': workingStartTime,
+        'working_end_time': workingEndTime,
+        'slot_duration_minutes': slotDurationMinutes,
+      };
+      final response = await _dio.patch(
+        NetworkConstants.adminBusiness,
+        data: payload,
+      );
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw const FormatException('Expected JSON map response');
+      }
+      return Business.fromJson(data);
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   AppException _mapException(Object error) {
     if (error is DioException) {
       switch (error.type) {
@@ -86,44 +132,66 @@ class BusinessRemoteDataSource {
         case DioExceptionType.sendTimeout:
         case DioExceptionType.receiveTimeout:
           return const AppException(
-            message: 'İstek zaman aşımına uğradı.',
+            message:
+                'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
             code: 'TIMEOUT',
           );
         case DioExceptionType.connectionError:
           return const AppException(
-            message: 'Sunucuya bağlanılamadı.',
+            message:
+                'Sunucuya ulaşılamadı. İnternet bağlantınızı kontrol edip tekrar deneyin.',
             code: 'CONNECTION_ERROR',
           );
         case DioExceptionType.badResponse:
           final statusCode = error.response?.statusCode;
-          if (statusCode == 404) {
+          if (statusCode == 401) {
             return const AppException(
-              message: 'İşletme bulunamadı.',
+              message: 'Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.',
+              code: 'UNAUTHORIZED',
+            );
+          } else if (statusCode == 403) {
+            return const AppException(
+              message: 'İşletme hesabı aktif değil.',
+              code: 'FORBIDDEN',
+            );
+          } else if (statusCode == 404) {
+            return const AppException(
+              message: 'İşletme bulunamadı veya artık hizmet vermiyor.',
               code: 'NOT_FOUND',
+            );
+          } else if (statusCode == 422) {
+            return const AppException(
+              message: 'Geçersiz istek.',
+              code: 'VALIDATION_ERROR',
             );
           } else if (statusCode == 400) {
             final responseData = error.response?.data;
-            if (responseData is Map<String, dynamic> &&
-                responseData['detail'] == 'Cannot query slots for past dates') {
-              return const AppException(
-                message: 'Geçmiş tarihler için randevu saatleri sorgulanamaz.',
-                code: 'PAST_DATE_ERROR',
-              );
+            if (responseData is Map<String, dynamic>) {
+              final detail = responseData['detail'] as String?;
+              if (detail != null) {
+                if (detail.contains('past dates')) {
+                  return const AppException(
+                    message:
+                        'Geçmiş tarihler için randevu saatleri sorgulanamaz.',
+                    code: 'PAST_DATE_ERROR',
+                  );
+                }
+                return AppException(message: detail, code: 'BAD_REQUEST');
+              }
             }
-            return AppException(
-              message:
-                  'Geçersiz istek parametresi (${statusCode ?? "Bilinmiyor"}).',
+            return const AppException(
+              message: 'Bilgiler geçerli değil. Girişlerinizi kontrol edin.',
               code: 'BAD_REQUEST',
             );
           } else if (statusCode != null && statusCode >= 500) {
             return const AppException(
-              message: 'Sunucuda bir hata oluştu.',
+              message: 'Sunucuda bir hata oluştu. Lütfen tekrar deneyin.',
               code: 'SERVER_ERROR',
             );
           } else {
-            return AppException(
+            return const AppException(
               message:
-                  'Sunucudan hata yanıtı alındı (${statusCode ?? "Bilinmiyor"}).',
+                  'İşlem gerçekleştirilirken bir sorun oluştu. Lütfen tekrar deneyin.',
               code: 'BAD_RESPONSE',
             );
           }

@@ -34,6 +34,38 @@ class FakeRemoteDataSource extends BusinessRemoteDataSource {
     if (error != null) throw error!;
     return slotsResult ?? [];
   }
+
+  @override
+  Future<Business> fetchAdminBusiness() async {
+    if (error != null) throw error!;
+    return businessResult!;
+  }
+
+  @override
+  Future<Business> updateAdminBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+  }) async {
+    if (error != null) throw error!;
+    return Business(
+      id: businessResult!.id,
+      name: name,
+      slug: businessResult!.slug,
+      description: description,
+      phone: phone,
+      address: address,
+      workingStartTime: workingStartTime,
+      workingEndTime: workingEndTime,
+      slotDurationMinutes:
+          slotDurationMinutes ?? businessResult!.slotDurationMinutes,
+      isActive: businessResult!.isActive,
+    );
+  }
 }
 
 void main() {
@@ -102,6 +134,50 @@ void main() {
           ),
           throwsException,
         );
+      },
+    );
+
+    test('getAdminBusiness should delegate to datasource', () async {
+      fakeDataSource.businessResult = const Business(
+        id: '1',
+        name: 'Test',
+        slug: 'test',
+        description: 'Desc',
+        slotDurationMinutes: 30,
+        isActive: true,
+      );
+      final result = await repository.getAdminBusiness();
+      expect(result.id, '1');
+      expect(result.description, 'Desc');
+    });
+
+    test(
+      'updateAdminBusiness should delegate to datasource and return updated business',
+      () async {
+        fakeDataSource.businessResult = const Business(
+          id: '1',
+          name: 'Test',
+          slug: 'test',
+          slotDurationMinutes: 30,
+          isActive: true,
+        );
+        final result = await repository.updateAdminBusiness(
+          name: 'Updated Name',
+          description: 'New Desc',
+          phone: '+905550009988',
+          address: 'New Address',
+          workingStartTime: '08:30',
+          workingEndTime: '19:30',
+          slotDurationMinutes: 45,
+        );
+
+        expect(result.name, 'Updated Name');
+        expect(result.description, 'New Desc');
+        expect(result.phone, '+905550009988');
+        expect(result.address, 'New Address');
+        expect(result.workingStartTime, '08:30');
+        expect(result.workingEndTime, '19:30');
+        expect(result.slotDurationMinutes, 45);
       },
     );
   });

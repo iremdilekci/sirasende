@@ -22,11 +22,24 @@ class BusinessDetail(BaseModel):
     slug: str
     address: str | None = None
     phone: str | None = None
+    description: str | None = None
     working_start_time: time
     working_end_time: time
     slot_duration_minutes: int
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BusinessUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    working_start_time: time | None = None
+    working_end_time: time | None = None
+    slot_duration_minutes: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
