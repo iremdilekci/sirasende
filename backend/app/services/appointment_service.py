@@ -16,18 +16,22 @@ from app.schemas.appointment import AppointmentCreate
 from app.services.slot_service import ISTANBUL_TIMEZONE, generate_daily_slots, get_now_istanbul
 
 
+from app.models import BusinessSchedule
+
+
 def resolve_appointment_slot(
     business: Business,
     appointment_date: date,
     requested_start_time: time,
     now: datetime | None = None,
+    schedule: BusinessSchedule | None = None,
 ) -> tuple[time, time]:
     """Validate and resolve start and end times for a requested appointment slot.
 
     Throws:
         BusinessNotFoundError: If business is inactive.
         PastAppointmentError: If date/time is in the past.
-        InvalidAppointmentSlotError: If requested time is not a valid slot start.
+        InvalidAppointmentSlotError: If requested time is not a valid slot start or if day is closed.
     """
     # 1. Validate timezone of now parameter
     if now is None:
@@ -51,14 +55,21 @@ def resolve_appointment_slot(
         if requested_start_time <= now.time():
             raise PastAppointmentError("Cannot book appointments for past hours today.")
 
-    # 5. Generate dynamic slots for the business
+    # 5. Check if day is closed in schedule
+    if schedule is not None and schedule.is_closed:
+        raise InvalidAppointmentSlotError("Cannot book appointments on closed days.")
+
+    # 6. Generate dynamic slots for the business
+    start_time = schedule.start_time if (schedule is not None and not schedule.is_closed) else business.working_start_time
+    end_time = schedule.end_time if (schedule is not None and not schedule.is_closed) else business.working_end_time
+
     slots = generate_daily_slots(
-        working_start_time=business.working_start_time,
-        working_end_time=business.working_end_time,
+        working_start_time=start_time,
+        working_end_time=end_time,
         slot_duration_minutes=business.slot_duration_minutes,
     )
 
-    # 6. Verify requested slot exists
+    # 7. Verify requested slot exists
     matching_slot = None
     for slot in slots:
         if slot.start_time == requested_start_time:
@@ -75,6 +86,7 @@ def build_pending_appointment(
     business: Business,
     payload: AppointmentCreate,
     now: datetime | None = None,
+    schedule: BusinessSchedule | None = None,
 ) -> Appointment:
     """Validate slot and build a new pending Appointment ORM model instance (not committed)."""
     start_time, end_time = resolve_appointment_slot(
@@ -82,6 +94,7 @@ def build_pending_appointment(
         appointment_date=payload.appointment_date,
         requested_start_time=payload.start_time,
         now=now,
+        schedule=schedule,
     )
 
     appointment = Appointment(
@@ -122,8 +135,16 @@ async def create_appointment(
     Throws:
         AppointmentConflictError: If slot is already booked (by pre-check or unique constraint violation on commit).
     """
-    # 1. Build transient appointment object (resolves times and business status)
-    appointment = build_pending_appointment(business, payload, now=now)
+    # 1. Fetch business schedule for the day of week
+    from app.repositories.business_repository import get_business_schedule_by_day
+    schedule = await get_business_schedule_by_day(
+        session,
+        business_id=business.id,
+        day_of_week=payload.appointment_date.weekday(),
+    )
+
+    # 2. Build transient appointment object (resolves times and business status)
+    appointment = build_pending_appointment(business, payload, now=now, schedule=schedule)
 
     # 2. Fast pre-check: query if there's already an active appointment in the slot
     existing = await get_active_appointment_for_slot(

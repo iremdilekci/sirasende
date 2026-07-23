@@ -40,6 +40,9 @@ async def seed_database() -> None:
                 session.add(business)
                 await session.flush()
 
+            from app.services.business_service import create_default_schedules_for_business
+            await create_default_schedules_for_business(session, business)
+
             admin_user = await session.scalar(
                 select(AdminUser).where(
                     or_(

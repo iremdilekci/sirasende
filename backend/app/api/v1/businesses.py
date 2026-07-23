@@ -114,10 +114,23 @@ async def get_business_slots(
         appointment_date=query_date,
     )
 
-    # 4. Generate and mark slots
+    # 4. Fetch business schedule for the day of week to apply weekly schedule rules
+    from app.repositories.business_repository import get_business_schedule_by_day
+    schedule = await get_business_schedule_by_day(
+        db,
+        business_id=business.id,
+        day_of_week=query_date.weekday(),
+    )
+
+    if schedule is not None and schedule.is_closed:
+        return []
+
+    start_time = schedule.start_time if (schedule is not None and not schedule.is_closed) else business.working_start_time
+    end_time = schedule.end_time if (schedule is not None and not schedule.is_closed) else business.working_end_time
+
     slots = generate_daily_slots(
-        working_start_time=business.working_start_time,
-        working_end_time=business.working_end_time,
+        working_start_time=start_time,
+        working_end_time=end_time,
         slot_duration_minutes=business.slot_duration_minutes,
     )
     slots = mark_booked_slots(slots, appointments)
