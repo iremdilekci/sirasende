@@ -379,9 +379,10 @@ void main() {
         router.go('/admin/home');
         await tester.pumpAndSettle();
 
-        // Tap on the Randevular list tile card
-        final randevularCard = find.text('Randevular');
+        // Tap on the Randevuları Görüntüle button
+        final randevularCard = find.text('Randevuları Görüntüle');
         expect(randevularCard, findsOneWidget);
+        await tester.ensureVisible(randevularCard);
         await tester.tap(randevularCard);
         await tester.pumpAndSettle();
 

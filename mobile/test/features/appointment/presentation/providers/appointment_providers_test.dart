@@ -338,4 +338,124 @@ void main() {
       expect(fakeRepo.updateCallCount, 1);
     });
   });
+
+  group('DashboardSummary Calculations and Providers Tests', () {
+    final dummyAppointments = [
+      const Appointment(
+        id: '1',
+        businessId: 'b1',
+        customerName: 'A',
+        customerPhone: '055',
+        appointmentDate: '2026-07-22',
+        startTime: '09:00',
+        endTime: '09:30',
+        status: 'pending',
+        createdAt: '2026-07-22',
+        updatedAt: '2026-07-22',
+      ),
+      const Appointment(
+        id: '2',
+        businessId: 'b1',
+        customerName: 'B',
+        customerPhone: '055',
+        appointmentDate: '2026-07-22',
+        startTime: '09:30',
+        endTime: '10:00',
+        status: 'confirmed',
+        createdAt: '2026-07-22',
+        updatedAt: '2026-07-22',
+      ),
+      const Appointment(
+        id: '3',
+        businessId: 'b1',
+        customerName: 'C',
+        customerPhone: '055',
+        appointmentDate: '2026-07-22',
+        startTime: '10:00',
+        endTime: '10:30',
+        status: 'completed',
+        createdAt: '2026-07-22',
+        updatedAt: '2026-07-22',
+      ),
+      const Appointment(
+        id: '4',
+        businessId: 'b1',
+        customerName: 'D',
+        customerPhone: '055',
+        appointmentDate: '2026-07-22',
+        startTime: '10:30',
+        endTime: '11:00',
+        status: 'cancelled',
+        createdAt: '2026-07-22',
+        updatedAt: '2026-07-22',
+      ),
+    ];
+
+    test(
+      'DashboardSummary.fromAppointments should calculate status counts correctly from a single list',
+      () {
+        final summary = DashboardSummary.fromAppointments(dummyAppointments);
+
+        expect(summary.total, 4);
+        expect(summary.pending, 1);
+        expect(summary.confirmed, 1);
+        expect(summary.completed, 1);
+        expect(summary.cancelled, 1);
+      },
+    );
+
+    test(
+      'DashboardSummary.fromAppointments should return zero counts for empty appointments list',
+      () {
+        final summary = DashboardSummary.fromAppointments([]);
+
+        expect(summary.total, 0);
+        expect(summary.pending, 0);
+        expect(summary.confirmed, 0);
+        expect(summary.completed, 0);
+        expect(summary.cancelled, 0);
+      },
+    );
+
+    test(
+      'adminDashboardSummaryProvider family should resolve AsyncData with correct counts',
+      () async {
+        final fakeRepo = FakeAppointmentRepository();
+        fakeRepo.listResult = dummyAppointments;
+
+        final container = ProviderContainer(
+          overrides: [
+            appointmentRepositoryProvider.overrideWithValue(fakeRepo),
+          ],
+        );
+        addTearDown(container.dispose);
+
+        // Listen to keep provider alive during test
+        final sub = container.listen(
+          adminDashboardSummaryProvider('2026-07-22'),
+          (prev, next) {},
+        );
+
+        final summaryAsync = container.read(
+          adminDashboardSummaryProvider('2026-07-22'),
+        );
+        expect(summaryAsync.isLoading, isTrue);
+
+        // Wait for future microtask resolving
+        await pumpEventQueue();
+
+        final summaryVal = container.read(
+          adminDashboardSummaryProvider('2026-07-22'),
+        );
+        expect(summaryVal.hasValue, isTrue);
+        expect(summaryVal.value?.total, 4);
+        expect(summaryVal.value?.pending, 1);
+        expect(summaryVal.value?.confirmed, 1);
+        expect(summaryVal.value?.completed, 1);
+        expect(summaryVal.value?.cancelled, 1);
+
+        sub.close();
+      },
+    );
+  });
 }

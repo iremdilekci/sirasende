@@ -122,3 +122,84 @@ final adminAppointmentActionControllerProvider =
     AsyncNotifierProvider.autoDispose<AdminAppointmentActionController, void>(
       AdminAppointmentActionController.new,
     );
+
+class DashboardSummary {
+  final int total;
+  final int pending;
+  final int confirmed;
+  final int completed;
+  final int cancelled;
+
+  const DashboardSummary({
+    required this.total,
+    required this.pending,
+    required this.confirmed,
+    required this.completed,
+    required this.cancelled,
+  });
+
+  factory DashboardSummary.fromAppointments(List<Appointment> appointments) {
+    int pending = 0;
+    int confirmed = 0;
+    int completed = 0;
+    int cancelled = 0;
+
+    for (final app in appointments) {
+      switch (app.status) {
+        case 'pending':
+          pending++;
+          break;
+        case 'confirmed':
+          confirmed++;
+          break;
+        case 'completed':
+          completed++;
+          break;
+        case 'cancelled':
+          cancelled++;
+          break;
+      }
+    }
+
+    return DashboardSummary(
+      total: appointments.length,
+      pending: pending,
+      confirmed: confirmed,
+      completed: completed,
+      cancelled: cancelled,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is DashboardSummary &&
+        other.total == total &&
+        other.pending == pending &&
+        other.confirmed == confirmed &&
+        other.completed == completed &&
+        other.cancelled == cancelled;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(total, pending, confirmed, completed, cancelled);
+}
+
+final todayDateStringProvider = Provider<String>((ref) {
+  final now = DateTime.now();
+  return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+});
+
+final adminDashboardSummaryProvider = Provider.autoDispose
+    .family<AsyncValue<DashboardSummary>, String>((ref, date) {
+      final params = AdminAppointmentsParams(date: date);
+      final appointmentsAsync = ref.watch(adminAppointmentsProvider(params));
+
+      return appointmentsAsync.when(
+        data: (list) =>
+            AsyncValue.data(DashboardSummary.fromAppointments(list)),
+        loading: () => const AsyncValue.loading(),
+        error: (err, stack) => AsyncValue.error(err, stack),
+      );
+    });
