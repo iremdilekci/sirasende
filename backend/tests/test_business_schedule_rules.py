@@ -441,3 +441,306 @@ async def test_new_business_creation_triggers_default_schedules() -> None:
             .where(BusinessSchedule.business_id == business.id)
         )
         assert sched_count_dup == 7
+
+
+@pytest.fixture
+async def client() -> AsyncGenerator[AsyncClient, None]:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as test_client:
+        yield test_client
+
+
+from app.core.security import create_access_token, hash_password
+from app.models import AdminUser
+from sqlalchemy.orm import selectinload
+
+
+async def _create_admin(business_id: str) -> tuple[AdminUser, str]:
+    username = f"admin_{uuid4().hex[:8]}"
+    admin = AdminUser(
+        business_id=business_id,
+        username=username,
+        email=f"{username}@example.com",
+        password_hash=hash_password("StrongPassword123!"),
+        is_active=True,
+    )
+    async with async_session_factory() as session:
+        async with session.begin():
+            session.add(admin)
+        await session.refresh(admin)
+
+    token = create_access_token(str(admin.id))
+    return admin, token
+
+
+async def test_get_my_business_returns_7_sorted_schedules(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+
+    _, token = await _create_admin(str(business.id))
+    response = await client.get(
+        "/api/v1/admin/business",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert "schedules" in data
+    schedules = data["schedules"]
+    assert len(schedules) == 7
+    for idx, s in enumerate(schedules):
+        assert s["day_of_week"] == idx
+
+
+async def test_public_business_detail_returns_7_sorted_schedules(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+
+    response = await client.get(f"/api/v1/businesses/{business.slug}")
+    assert response.status_code == 200
+    data = response.json()
+    assert "schedules" in data
+    schedules = data["schedules"]
+    assert len(schedules) == 7
+    for idx, s in enumerate(schedules):
+        assert s["day_of_week"] == idx
+
+
+async def test_patch_my_business_schedules_success(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+
+    _, token = await _create_admin(str(business.id))
+
+    payload = {
+        "schedules": [
+            {"day_of_week": 0, "is_closed": True, "start_time": None, "end_time": None},
+            {"day_of_week": 1, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"},
+            {"day_of_week": 2, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"},
+            {"day_of_week": 3, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"},
+            {"day_of_week": 4, "is_closed": False, "start_time": "10:00:00", "end_time": "16:00:00"},
+            {"day_of_week": 5, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"},
+            {"day_of_week": 6, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"},
+        ]
+    }
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    schedules = {s["day_of_week"]: s for s in data["schedules"]}
+    assert schedules[0]["is_closed"] is True
+    assert schedules[4]["start_time"] == "10:00:00"
+
+
+async def test_patch_my_business_no_schedules_unchanged(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+
+    _, token = await _create_admin(str(business.id))
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"name": "New Name Only"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "New Name Only"
+    assert len(data["schedules"]) == 7
+
+
+async def test_closed_day_with_null_times_allowed(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(7)]
+    schedules[3] = {"day_of_week": 3, "is_closed": True, "start_time": None, "end_time": None}
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    schedules_map = {s["day_of_week"]: s for s in data["schedules"]}
+    assert schedules_map[3]["is_closed"] is True
+    assert schedules_map[3]["start_time"] is None
+
+
+async def test_open_day_with_null_times_rejected(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(7)]
+    schedules[3] = {"day_of_week": 3, "is_closed": False, "start_time": None, "end_time": "18:00:00"}
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_open_day_invalid_time_ordering_rejected(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(7)]
+    schedules[3] = {"day_of_week": 3, "is_closed": False, "start_time": "17:00:00", "end_time": "16:00:00"}
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_duplicate_day_of_week_rejected(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(7)]
+    schedules[3] = {"day_of_week": 0, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"}
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_incomplete_schedules_list_rejected(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(6)]
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_out_of_range_day_of_week_rejected(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"} for i in range(7)]
+    schedules[3] = {"day_of_week": 7, "is_closed": False, "start_time": "09:00:00", "end_time": "18:00:00"}
+
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 422
+
+
+async def test_patch_schedules_unauthorized(client: AsyncClient) -> None:
+    response = await client.patch("/api/v1/admin/business", json={"schedules": []})
+    assert response.status_code == 401
+
+
+async def test_cannot_modify_different_business_schedules(client: AsyncClient) -> None:
+    biz1 = await _create_business()
+    biz2 = await _create_business()
+
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, biz1)
+            await create_default_schedules_for_business(session, biz2)
+
+    _, token1 = await _create_admin(str(biz1.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "10:00:00", "end_time": "17:00:00"} for i in range(7)]
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token1}"},
+    )
+    assert response.status_code == 200
+
+    async with async_session_factory() as session:
+        db_biz2 = await session.get(Business, biz2.id, options=[selectinload(Business.schedules)])
+        assert db_biz2 is not None
+        for s in db_biz2.schedules:
+            assert s.start_time == time(9, 0)
+
+
+async def test_atomic_update_rollback_on_failure(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "10:00:00", "end_time": "17:00:00"} for i in range(7)]
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"name": "   ", "schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 400
+
+    async with async_session_factory() as session:
+        db_biz = await session.get(Business, business.id, options=[selectinload(Business.schedules)])
+        assert db_biz is not None
+        for s in db_biz.schedules:
+            assert s.start_time == time(9, 0)
+
+
+async def test_only_7_schedules_remain_after_update(client: AsyncClient) -> None:
+    business = await _create_business()
+    async with async_session_factory() as session:
+        async with session.begin():
+            await create_default_schedules_for_business(session, business)
+    _, token = await _create_admin(str(business.id))
+
+    schedules = [{"day_of_week": i, "is_closed": False, "start_time": "11:00:00", "end_time": "15:00:00"} for i in range(7)]
+    response = await client.patch(
+        "/api/v1/admin/business",
+        json={"schedules": schedules},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert response.status_code == 200
+
+    async with async_session_factory() as session:
+        sched_count = await session.scalar(
+            sa.select(sa.func.count(BusinessSchedule.id))
+            .where(BusinessSchedule.business_id == business.id)
+        )
+        assert sched_count == 7

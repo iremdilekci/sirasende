@@ -104,7 +104,37 @@ async def update_my_business(
             )
         business.slot_duration_minutes = payload.slot_duration_minutes
 
-    db.add(business)
-    await db.commit()
+    # 3. Update schedules if provided
+    if payload.schedules is not None:
+        import uuid
+        from app.models import BusinessSchedule
+        for sched_payload in payload.schedules:
+            existing_sched = None
+            for s in business.schedules:
+                if s.day_of_week == sched_payload.day_of_week:
+                    existing_sched = s
+                    break
+
+            if existing_sched is not None:
+                existing_sched.start_time = sched_payload.start_time
+                existing_sched.end_time = sched_payload.end_time
+                existing_sched.is_closed = sched_payload.is_closed
+            else:
+                new_sched = BusinessSchedule(
+                    id=uuid.uuid4(),
+                    business_id=business.id,
+                    day_of_week=sched_payload.day_of_week,
+                    start_time=sched_payload.start_time,
+                    end_time=sched_payload.end_time,
+                    is_closed=sched_payload.is_closed,
+                )
+                business.schedules.append(new_sched)
+
+    try:
+        db.add(business)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
     await db.refresh(business)
     return business
