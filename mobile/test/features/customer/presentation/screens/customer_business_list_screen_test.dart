@@ -36,6 +36,20 @@ class FakeBusinessRepository implements BusinessRepository {
   }) async {
     return [];
   }
+
+  @override
+  Future<Business> getAdminBusiness() => throw UnimplementedError();
+
+  @override
+  Future<Business> updateAdminBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+  }) => throw UnimplementedError();
 }
 
 void main() {

@@ -8,4 +8,14 @@ abstract interface class BusinessRepository {
     required String slug,
     required String date,
   });
+  Future<Business> getAdminBusiness();
+  Future<Business> updateAdminBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+  });
 }

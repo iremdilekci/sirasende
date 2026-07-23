@@ -424,6 +424,30 @@ class AdminHomeScreen extends ConsumerWidget {
                   height: 50,
                   child: OutlinedButton.icon(
                     onPressed: () {
+                      context.goNamed(RouteNames.adminProfile);
+                    },
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: const Text(
+                      'Profil Bilgileri',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
                       ref.read(authControllerProvider.notifier).logout();
                     },
                     icon: const Icon(Icons.logout),

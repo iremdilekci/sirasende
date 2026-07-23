@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/network/dio_provider.dart';
 import 'package:sirasende_mobile/features/business/data/datasources/business_remote_data_source.dart';
 import 'package:sirasende_mobile/features/business/data/repositories/business_repository_impl.dart';
@@ -57,3 +60,53 @@ final businessSlotsProvider = FutureProvider.autoDispose
           .watch(businessRepositoryProvider)
           .getBusinessSlots(slug: params.slug, date: params.date);
     });
+
+final adminBusinessProvider = FutureProvider.autoDispose<Business>((ref) {
+  return ref.watch(businessRepositoryProvider).getAdminBusiness();
+});
+
+class AdminBusinessUpdateController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {}
+
+  Future<void> updateBusiness({
+    required String name,
+    String? description,
+    String? phone,
+    String? address,
+    String? workingStartTime,
+    String? workingEndTime,
+    int? slotDurationMinutes,
+    required VoidCallback onSuccess,
+    required void Function(String message) onError,
+  }) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repository = ref.read(businessRepositoryProvider);
+      await repository.updateAdminBusiness(
+        name: name,
+        description: description,
+        phone: phone,
+        address: address,
+        workingStartTime: workingStartTime,
+        workingEndTime: workingEndTime,
+        slotDurationMinutes: slotDurationMinutes,
+      );
+      ref.invalidate(adminBusinessProvider);
+      onSuccess();
+    });
+
+    if (state.hasError) {
+      final error = state.error;
+      final message = error is AppException
+          ? error.message
+          : 'Bilgiler kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.';
+      onError(message);
+    }
+  }
+}
+
+final adminBusinessUpdateControllerProvider =
+    AsyncNotifierProvider.autoDispose<AdminBusinessUpdateController, void>(
+      AdminBusinessUpdateController.new,
+    );

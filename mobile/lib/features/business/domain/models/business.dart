@@ -4,6 +4,7 @@ class Business {
   final String slug;
   final String? address;
   final String? phone;
+  final String? description;
   final int slotDurationMinutes;
   final bool isActive;
   final String? workingStartTime;
@@ -17,6 +18,7 @@ class Business {
     required this.slug,
     this.address,
     this.phone,
+    this.description,
     required this.slotDurationMinutes,
     required this.isActive,
     this.workingStartTime,
@@ -56,6 +58,7 @@ class Business {
       slug: slug,
       address: json['address'] as String?,
       phone: json['phone'] as String?,
+      description: json['description'] as String?,
       slotDurationMinutes: slotDurationMinutes,
       isActive: isActive,
       workingStartTime: json['working_start_time'] as String?,
@@ -72,6 +75,7 @@ class Business {
       'slug': slug,
       'address': address,
       'phone': phone,
+      'description': description,
       'slot_duration_minutes': slotDurationMinutes,
       'is_active': isActive,
       'working_start_time': workingStartTime,
@@ -90,6 +94,7 @@ class Business {
         other.slug == slug &&
         other.address == address &&
         other.phone == phone &&
+        other.description == description &&
         other.slotDurationMinutes == slotDurationMinutes &&
         other.isActive == isActive &&
         other.workingStartTime == workingStartTime &&
@@ -106,6 +111,7 @@ class Business {
       slug,
       address,
       phone,
+      description,
       slotDurationMinutes,
       isActive,
       workingStartTime,

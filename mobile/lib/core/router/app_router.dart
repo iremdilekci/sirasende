@@ -7,6 +7,7 @@ import 'package:sirasende_mobile/features/customer/presentation/screens/customer
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_home_screen.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_appointments_screen.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/admin_profile_screen.dart';
 import 'package:sirasende_mobile/features/business/presentation/screens/business_detail_screen.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/screens/appointment_form_screen.dart';
@@ -112,6 +113,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'appointments',
             name: RouteNames.adminAppointments,
             builder: (context, state) => const AdminAppointmentsScreen(),
+          ),
+          GoRoute(
+            path: 'profile',
+            name: RouteNames.adminProfile,
+            builder: (context, state) => const AdminProfileScreen(),
           ),
         ],
       ),
