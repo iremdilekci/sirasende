@@ -179,4 +179,43 @@ class Business {
       Object.hashAll(schedules),
     );
   }
+
+  String get todayScheduleText {
+    final todayWeekday = DateTime.now().weekday;
+    final todayScheduleIndex = schedules.indexWhere(
+      (s) => s.dayOfWeek == todayWeekday,
+    );
+    final todaySchedule = todayScheduleIndex != -1
+        ? schedules[todayScheduleIndex]
+        : null;
+
+    if (todaySchedule == null) {
+      if (workingStartTime != null && workingEndTime != null) {
+        final start = _formatTime(workingStartTime!);
+        final end = _formatTime(workingEndTime!);
+        return 'Bugün açık · $start–$end';
+      }
+      return 'Çalışma saati belirtilmemiş';
+    }
+
+    if (todaySchedule.isClosed) {
+      return 'Bugün kapalı';
+    }
+
+    if (todaySchedule.startTime != null && todaySchedule.endTime != null) {
+      final start = _formatTime(todaySchedule.startTime!);
+      final end = _formatTime(todaySchedule.endTime!);
+      return 'Bugün açık · $start–$end';
+    }
+
+    return 'Çalışma saati belirtilmemiş';
+  }
+
+  String _formatTime(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return timeStr;
+  }
 }

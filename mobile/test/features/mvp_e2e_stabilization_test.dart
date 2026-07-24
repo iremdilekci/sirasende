@@ -345,7 +345,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Müşteri olarak devam et'), findsOneWidget);
-      expect(find.text('Esnaf girişi'), findsOneWidget);
+      expect(find.text('Esnaf olarak devam et'), findsOneWidget);
     });
 
     testWidgets('Client list renders empty state when list is empty', (
@@ -389,7 +389,7 @@ void main() {
       expect(find.text('Berber Ahmet'), findsWidgets);
 
       // Date Picker selected and slots loaded
-      expect(find.text('09:00:00'), findsOneWidget);
+      expect(find.text('09:00'), findsOneWidget);
     });
 
     testWidgets('Appointment booking conflict 409 shows Turkish error', (

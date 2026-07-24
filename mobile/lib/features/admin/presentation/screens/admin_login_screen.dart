@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sirasende_mobile/core/errors/app_exception.dart';
-import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/errors/app_exception.dart';
+import '../../../../core/router/route_names.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/app_button.dart';
 
 class AdminLoginScreen extends ConsumerStatefulWidget {
   const AdminLoginScreen({super.key});
@@ -14,7 +22,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -36,7 +43,6 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
       identifier: _identifierController.text,
       password: _passwordController.text,
       onFailure: (errorMsg) {
-        // Clear password on error for security reasons, preserve identifier
         if (mounted) {
           _passwordController.clear();
         }
@@ -56,161 +62,208 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
     final authState = ref.watch(authControllerProvider);
     final isLoading = authState.isLoading;
 
-    // Detect errors
     Object? error;
     if (authState.hasError && !isLoading) {
       error = authState.error;
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Esnaf Girişi')),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Error card
-                  if (error != null) ...[
-                    Card(
-                      margin: const EdgeInsets.only(bottom: 24),
-                      color: Theme.of(context).colorScheme.errorContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+      backgroundColor: AppColors.background,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Top Hero Header
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, Color(0xFF3B2FBF)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xxl,
+                    vertical: AppSpacing.xl,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.s),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _mapErrorMessage(error),
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onErrorContainer,
+                      const SizedBox(height: AppSpacing.s),
+                      const Text(
+                        'İşletme Girişi',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Randevularınızı ve çalışma saatlerinizi yönetin.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.85),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Form Content
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    AppCard(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (error != null) ...[
+                            Container(
+                              margin: const EdgeInsets.only(
+                                bottom: AppSpacing.lg,
+                              ),
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFEBEE), // light red
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
                                 ),
+                                border: Border.all(color: AppColors.error),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.error_outline,
+                                    color: AppColors.error,
+                                  ),
+                                  const SizedBox(width: AppSpacing.md),
+                                  Expanded(
+                                    child: Text(
+                                      _mapErrorMessage(error),
+                                      style: const TextStyle(
+                                        color: AppColors.error,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ),
-                  ],
 
-                  Text(
-                    'Esnaf Paneline Giriş Yapın',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Randevu ve mesai yönetim sistemine erişmek için giriş bilgilerinizi yazın.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
+                          // Identifier Field
+                          AppTextField(
+                            label: 'Kullanıcı adı veya e-posta',
+                            hint: 'Bilgilerinizi girin',
+                            controller: _identifierController,
+                            keyboardType: TextInputType.emailAddress,
+                            prefixIcon: Icons.person_outline,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Kullanıcı adı veya e-posta alanı zorunludur.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.lg),
 
-                  // Identifier
-                  TextFormField(
-                    controller: _identifierController,
-                    enabled: !isLoading,
-                    keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Kullanıcı adı veya e-posta',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Kullanıcı adı veya e-posta alanı zorunludur.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
+                          // Password Field
+                          AppTextField(
+                            label: 'Şifre',
+                            hint: 'Şifrenizi girin',
+                            controller: _passwordController,
+                            isPassword: true,
+                            prefixIcon: Icons.lock_outline,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Şifre alanı zorunludur.';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.xl),
 
-                  // Password
-                  TextFormField(
-                    controller: _passwordController,
-                    enabled: !isLoading,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Şifre',
-                      border: const OutlineInputBorder(
-                        borderRadius: BorderRadius.all(Radius.circular(12)),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePassword = !_obscurePassword;
-                          });
-                        },
+                          // Submit Button
+                          AppButton(
+                            label: isLoading
+                                ? 'Giriş Yapılıyor...'
+                                : 'Giriş Yap',
+                            isLoading: isLoading,
+                            onPressed: isLoading ? null : _submit,
+                          ),
+                        ],
                       ),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Şifre alanı zorunludur.';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
+                    const SizedBox(height: AppSpacing.xl),
 
-                  // Submit
-                  SizedBox(
-                    height: 50,
-                    child: FilledButton(
-                      onPressed: isLoading ? null : _submit,
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                    // Demo Info Box
+                    const Text(
+                      'Demo: kullanıcı adı "admin" veya şifre "123456"',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.bold,
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Giriş Yap',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Separator and Outlined Back Button
+                    const Row(
+                      children: [
+                        Expanded(child: Divider()),
+                        Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                          ),
+                          child: Text(
+                            'veya',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
                             ),
+                          ),
+                        ),
+                        Expanded(child: Divider()),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.md),
+
+                    AppButton(
+                      label: 'Müşteri olarak devam et',
+                      isOutlined: true,
+                      onPressed: () {
+                        context.goNamed(RouteNames.roleSelection);
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

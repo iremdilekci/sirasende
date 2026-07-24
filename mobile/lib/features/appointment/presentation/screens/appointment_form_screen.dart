@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sirasende_mobile/core/errors/app_exception.dart';
-import 'package:sirasende_mobile/core/router/route_names.dart';
-import 'package:sirasende_mobile/features/appointment/data/models/appointment_create_request.dart';
-import 'package:sirasende_mobile/features/appointment/domain/models/appointment_draft.dart';
-import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_success_args.dart';
-import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
-import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
-import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
-import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/errors/app_exception.dart';
+import '../../../../core/router/route_names.dart';
+import '../../../appointment/data/models/appointment_create_request.dart';
+import '../../../appointment/domain/models/appointment_draft.dart';
+import '../models/appointment_success_args.dart';
+import '../providers/appointment_providers.dart';
+import '../models/appointment_form_args.dart';
+import '../../../business/presentation/helpers/datetime_helpers.dart';
+import '../../../business/presentation/providers/business_providers.dart';
+import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_text_field.dart';
+import '../../../../shared/widgets/app_button.dart';
 
 class AppointmentFormScreen extends ConsumerStatefulWidget {
   final AppointmentFormArgs args;
@@ -40,6 +46,27 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
     super.dispose();
   }
 
+  int _computeDurationMinutes(String startStr, String endStr) {
+    try {
+      final startParts = startStr.split(':').map(int.parse).toList();
+      final endParts = endStr.split(':').map(int.parse).toList();
+      final startMin = startParts[0] * 60 + startParts[1];
+      final endMin = endParts[0] * 60 + endParts[1];
+      final diff = endMin - startMin;
+      return diff > 0 ? diff : 30;
+    } catch (_) {
+      return 30;
+    }
+  }
+
+  String _formatTime(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length >= 2) {
+      return '${parts[0]}:${parts[1]}';
+    }
+    return timeStr;
+  }
+
   Future<void> _submitForm() async {
     FocusScope.of(context).unfocus();
 
@@ -60,7 +87,6 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
           : _noteController.text.trim(),
     );
 
-    // Call test helper if provided
     widget.onValidSubmit?.call(draft);
 
     final request = AppointmentCreateRequest.fromDraft(draft);
@@ -100,20 +126,32 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
         ? formatTurkishDate(parsedDate)
         : widget.args.date;
 
-    // Detect conflict vs other errors
     AppException? appError;
     if (bookingState.hasError && bookingState.error is AppException) {
       appError = bookingState.error as AppException;
     }
 
     final isConflict = appError?.code == 'CONFLICT';
+    final duration = _computeDurationMinutes(
+      widget.args.startTime,
+      widget.args.endTime,
+    );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Randevu Bilgileri')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Randevu Bilgileri',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           child: Form(
             key: _formKey,
             child: Column(
@@ -122,56 +160,53 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                 // Error card if any
                 if (appError != null) ...[
                   Card(
-                    margin: const EdgeInsets.only(bottom: 24),
-                    color: Theme.of(context).colorScheme.errorContainer,
+                    margin: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    color: const Color(0xFFFFEBEE), // light red
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      side: const BorderSide(color: AppColors.error),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.error_outline,
-                                color: Theme.of(context).colorScheme.error,
+                                color: AppColors.error,
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: AppSpacing.md),
                               Expanded(
                                 child: Text(
                                   isConflict
                                       ? 'Bu saat artık müsait değil'
                                       : 'İşlem Başarısız',
-                                  style: Theme.of(context).textTheme.titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onErrorContainer,
-                                      ),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.error,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.s),
                           Text(
                             appError.message,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onErrorContainer,
-                                ),
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13,
+                            ),
                           ),
                           if (isConflict) ...[
-                            const SizedBox(height: 16),
+                            const SizedBox(height: AppSpacing.lg),
                             SizedBox(
                               width: double.infinity,
-                              child: FilledButton.icon(
+                              child: AppButton(
+                                label: 'Başka Saat Seç',
                                 onPressed: () {
-                                  // Invalidate cache
                                   ref.invalidate(
                                     businessSlotsProvider(
                                       BusinessSlotsParams(
@@ -180,22 +215,8 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                                       ),
                                     ),
                                   );
-                                  // Return to details
                                   context.pop();
                                 },
-                                icon: const Icon(Icons.arrow_back),
-                                label: const Text('Başka Saat Seç'),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.error,
-                                  foregroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.onError,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
                               ),
                             ),
                           ],
@@ -206,88 +227,96 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                 ],
 
                 // Selection Summary Card
-                Card(
-                  margin: EdgeInsets.zero,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withAlpha(128),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.args.businessName,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.args.businessName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
-                        const Divider(height: 24),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today_outlined,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const Divider(height: AppSpacing.xxl),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today_outlined,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.s),
+                          Text(
+                            dateText,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              dateText,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.access_time_outlined,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.s),
+                          Expanded(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    '${_formatTime(widget.args.startTime)} – ${_formatTime(widget.args.endTime)}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.s),
+                                Text(
+                                  '$duration dk',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time_outlined,
-                              size: 18,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${widget.args.startTime} – ${widget.args.endTime}',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 32),
-                Text(
+                const SizedBox(height: AppSpacing.xxl),
+
+                const Text(
                   'Müşteri Bilgileri',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: TextStyle(
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
 
                 // Name Field
-                TextFormField(
+                AppTextField(
+                  label: 'Ad Soyad',
+                  hint: 'Adınızı ve soyadınızı girin',
                   controller: _nameController,
-                  enabled: !isLoading,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(
-                    labelText: 'Ad Soyad',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
+                  prefixIcon: Icons.person_outline,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Ad soyad alanı zorunludur.';
@@ -302,21 +331,15 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Phone Field
-                TextFormField(
+                AppTextField(
+                  label: 'Telefon Numarası',
+                  hint: '05xx xxx xx xx',
                   controller: _phoneController,
-                  enabled: !isLoading,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Telefon Numarası',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                    prefixIcon: Icon(Icons.phone_outlined),
-                    hintText: '05xx xxx xx xx',
-                  ),
+                  prefixIcon: Icons.phone_outlined,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Telefon numarası alanı zorunludur.';
@@ -331,21 +354,16 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSpacing.lg),
 
                 // Note Field
-                TextFormField(
+                AppTextField(
+                  label: 'Not (İsteğe Bağlı)',
+                  hint:
+                      'Eklemek istediğiniz bir not varsa buraya yazabilirsiniz...',
                   controller: _noteController,
-                  enabled: !isLoading,
                   keyboardType: TextInputType.multiline,
                   maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Not (İsteğe Bağlı)',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(12)),
-                    ),
-                    alignLabelWithHint: true,
-                  ),
                   validator: (value) {
                     if (value != null && value.length > 1000) {
                       return 'Not en fazla 1000 karakter olmalıdır.';
@@ -353,36 +371,41 @@ class _AppointmentFormScreenState extends ConsumerState<AppointmentFormScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xl),
+
+                // Info Box
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Randevu oluşturulduktan sonra işletme tarafından onaylanacaktır.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary.withRed(30).withBlue(150),
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xxl),
 
                 // Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton(
-                    onPressed: isLoading ? null : _submitForm,
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Randevuyu Oluştur',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                AppButton(
+                  label: isLoading
+                      ? 'Randevu oluşturuluyor...'
+                      : 'Randevuyu Oluştur',
+                  isLoading: isLoading,
+                  onPressed: isLoading ? null : _submitForm,
                 ),
               ],
             ),

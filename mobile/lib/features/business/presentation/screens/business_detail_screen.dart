@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sirasende_mobile/core/errors/app_exception.dart';
-import 'package:sirasende_mobile/core/router/route_names.dart';
-import 'package:sirasende_mobile/features/appointment/presentation/models/appointment_form_args.dart';
-import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
-import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
-import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
-import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
-import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
+import '../../../../core/errors/app_exception.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_radius.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/router/route_names.dart';
+import '../../../../features/appointment/presentation/models/appointment_form_args.dart';
+import '../../../../features/business/domain/models/slot.dart';
+import '../../../../features/business/presentation/helpers/datetime_helpers.dart';
+import '../../../../features/business/presentation/providers/business_providers.dart';
+import '../../../../features/business/domain/models/business_schedule.dart';
+import '../../../../shared/widgets/app_empty_state.dart';
+import '../../../../shared/widgets/app_loading_indicator.dart';
+import '../../../../shared/widgets/app_card.dart';
 
 class BusinessDetailScreen extends ConsumerStatefulWidget {
   final String slug;
@@ -24,6 +29,7 @@ class BusinessDetailScreen extends ConsumerStatefulWidget {
 class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
   late DateTime _selectedDate;
   Slot? _selectedSlot;
+  bool _isHoursExpanded = true;
 
   @override
   void initState() {
@@ -41,6 +47,18 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
       initialDate: _selectedDate,
       firstDate: today,
       lastDate: today.add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (picked != null && picked != _selectedDate) {
@@ -86,36 +104,34 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
       }
     });
 
+    final business = businessAsync.whenOrNull(data: (b) => b);
+
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          businessAsync.whenOrNull(data: (b) => b)?.name ?? 'İşletme Detayı',
+          business?.name ?? 'İşletme Detayı',
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
       ),
       body: SafeArea(
         child: businessAsync.when(
           loading: () => const AppLoadingIndicator(
             message: 'İşletme bilgileri yükleniyor...',
           ),
-          error: (error, stackTrace) {
-            final errorMessage = error is AppException
-                ? error.message
-                : 'İşletme bilgileri yüklenemedi.';
-            return AppEmptyState(
-              title: 'İşletme bilgileri yüklenemedi',
-              message: errorMessage,
-              icon: Icons.error_outline,
-              actionLabel: 'Tekrar Dene',
-              onAction: () {
-                ref.invalidate(businessDetailProvider(widget.slug));
-              },
-            );
-          },
+          error: (error, stackTrace) => AppEmptyState(
+            title: 'İşletme bilgileri yüklenemedi',
+            message: 'Lütfen tekrar deneyin.',
+            icon: Icons.error_outline,
+            actionLabel: 'Tekrar Dene',
+            onAction: () {
+              ref.invalidate(businessDetailProvider(widget.slug));
+            },
+          ),
           data: (business) {
-            final startTime = _formatTime(business.workingStartTime);
-            final endTime = _formatTime(business.workingEndTime);
-            final showWorkingHours = startTime.isNotEmpty && endTime.isNotEmpty;
-
             final showAddress =
                 business.address != null && business.address!.isNotEmpty;
             final showPhone =
@@ -123,127 +139,261 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.xxxl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    business.name,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Card(
-                    margin: EdgeInsets.zero,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.outlineVariant.withAlpha(128),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        children: [
-                          if (showAddress) ...[
-                            _buildInfoRow(
-                              context,
-                              icon: Icons.location_on_outlined,
-                              title: 'Adres',
-                              value: business.address!,
+                  // Business Info Card
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.storefront_outlined,
+                                color: AppColors.primary,
+                                size: 24,
+                              ),
                             ),
-                            if (showPhone || showWorkingHours || true)
-                              const Divider(height: 24),
-                          ],
-                          if (showPhone) ...[
-                            _buildInfoRow(
-                              context,
-                              icon: Icons.phone_outlined,
-                              title: 'Telefon',
-                              value: business.phone!,
+                            const SizedBox(width: AppSpacing.lg),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    business.name,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    business.todayScheduleText,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.success,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            if (showWorkingHours || true)
-                              const Divider(height: 24),
                           ],
-                          _buildInfoRow(
-                            context,
-                            icon: Icons.access_time_outlined,
-                            title: 'Randevu Süresi',
-                            value: '${business.slotDurationMinutes} dakika',
+                        ),
+                        if (business.description != null &&
+                            business.description!.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          Text(
+                            business.description!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                              height: 1.4,
+                            ),
                           ),
-                          if (showWorkingHours) ...[
-                            const Divider(height: 24),
-                            _buildInfoRow(
-                              context,
-                              icon: Icons.schedule_outlined,
-                              title: 'Çalışma Saatleri',
-                              value: '$startTime – $endTime',
+                        ],
+                        const Divider(height: AppSpacing.xxl),
+                        if (showAddress) ...[
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: AppSpacing.s),
+                              Expanded(
+                                child: Text(
+                                  business.address!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        if (showPhone) ...[
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.phone_outlined,
+                                size: 16,
+                                color: AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: AppSpacing.s),
+                              Expanded(
+                                child: Text(
+                                  business.phone!,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.access_time_outlined,
+                              size: 16,
+                              color: AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.s),
+                            Expanded(
+                              child: Text(
+                                'Her randevu ${business.slotDurationMinutes} dakika',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Collapsible Working Hours Card
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _isHoursExpanded = !_isHoursExpanded;
+                            });
+                          },
+                          borderRadius: BorderRadius.vertical(
+                            top: const Radius.circular(AppRadius.card),
+                            bottom: Radius.circular(
+                              _isHoursExpanded ? 0 : AppRadius.card,
+                            ),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Çalışma saatleri',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                Icon(
+                                  _isHoursExpanded
+                                      ? Icons.expand_less
+                                      : Icons.expand_more,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        if (_isHoursExpanded) ...[
+                          const Divider(height: 1),
+                          Padding(
+                            padding: const EdgeInsets.all(AppSpacing.lg),
+                            child: _buildSchedulesList(business.schedules),
+                          ),
                         ],
-                      ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Randevu Tarihi',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Randevu Tarihi Section
+                  const Text(
+                    'Randevu tarihi',
+                    style: TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.s),
                   InkWell(
                     onTap: () => _selectDate(context),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        horizontal: AppSpacing.lg,
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Theme.of(context).colorScheme.outline,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.border),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.calendar_today_outlined,
                             size: 20,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: AppColors.primary,
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSpacing.md),
                           Expanded(
                             child: Text(
                               formatTurkishDate(_selectedDate),
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(fontWeight: FontWeight.w500),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: Theme.of(context).colorScheme.onSurface,
+                          const Icon(
+                            Icons.keyboard_arrow_down,
+                            color: AppColors.textSecondary,
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Müsait Saatler',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Müsait Saatler Section
+                  const Text(
+                    'Müsait saatler',
+                    style: TextStyle(
+                      fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
+                      color: AppColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.md),
                   slotsAsync.when(
                     loading: () => const AppLoadingIndicator(
                       message: 'Müsait saatler yükleniyor...',
@@ -272,7 +422,7 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                           title: 'Müsait saat bulunamadı',
                           message:
                               'Bu tarih için uygun randevu saati bulunmuyor. Başka bir tarih seçebilirsiniz.',
-                          icon: Icons.access_time_filled_outlined,
+                          icon: Icons.access_time_outlined,
                         );
                       }
 
@@ -291,40 +441,47 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                                 }
                               });
                             },
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(AppRadius.s),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
+                                horizontal: AppSpacing.lg,
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primaryContainer
-                                    : Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(8),
+                                    ? AppColors.primary
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.s,
+                                ),
                                 border: Border.all(
                                   color: isSelected
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(
-                                          context,
-                                        ).colorScheme.outlineVariant,
+                                      ? AppColors.primary
+                                      : AppColors.border,
                                 ),
                               ),
-                              child: Text(
-                                slot.startTime,
-                                style: Theme.of(context).textTheme.labelLarge
-                                    ?.copyWith(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (isSelected) ...[
+                                    const Icon(
+                                      Icons.check,
+                                      size: 14,
+                                      color: Colors.white,
+                                    ),
+                                    const SizedBox(width: 4),
+                                  ],
+                                  Text(
+                                    _formatTime(slot.startTime),
+                                    style: TextStyle(
+                                      fontSize: 13,
                                       color: isSelected
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer
-                                          : Theme.of(
-                                              context,
-                                            ).colorScheme.onSurface,
+                                          ? Colors.white
+                                          : AppColors.textPrimary,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -332,97 +489,107 @@ class _BusinessDetailScreenState extends ConsumerState<BusinessDetailScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 32),
-
-                  // Continuation Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: FilledButton(
-                      onPressed: _selectedSlot == null || slotsAsync.isLoading
-                          ? null
-                          : () {
-                              context.pushNamed(
-                                RouteNames.customerAppointmentForm,
-                                pathParameters: {'slug': widget.slug},
-                                extra: AppointmentFormArgs(
-                                  businessSlug: widget.slug,
-                                  businessName: business.name,
-                                  date: formattedDate,
-                                  startTime: _selectedSlot!.startTime,
-                                  endTime: _selectedSlot!.endTime,
-                                ),
-                              );
-                            },
-                      style: FilledButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Devam Et',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
                 ],
               ),
             );
           },
         ),
       ),
+      bottomNavigationBar: businessAsync.whenOrNull(
+        data: (business) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: _selectedSlot == null || slotsAsync.isLoading
+                    ? null
+                    : () {
+                        context.pushNamed(
+                          RouteNames.customerAppointmentForm,
+                          pathParameters: {'slug': widget.slug},
+                          extra: AppointmentFormArgs(
+                            businessSlug: widget.slug,
+                            businessName: business.name,
+                            date: formattedDate,
+                            startTime: _selectedSlot!.startTime,
+                            endTime: _selectedSlot!.endTime,
+                          ),
+                        );
+                      },
+                child: const Text(
+                  'Devam Et',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildInfoRow(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String value,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withAlpha(24),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).colorScheme.primary,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSchedulesList(List<BusinessSchedule> schedules) {
+    final days = {
+      1: 'Pazartesi',
+      2: 'Salı',
+      3: 'Çarşamba',
+      4: 'Perşembe',
+      5: 'Cuma',
+      6: 'Cumartesi',
+      7: 'Pazar',
+    };
+
+    final children = <Widget>[];
+
+    for (int i = 1; i <= 7; i++) {
+      final dayName = days[i]!;
+      final dayScheduleIndex = schedules.indexWhere((s) => s.dayOfWeek == i);
+      final daySchedule = dayScheduleIndex != -1
+          ? schedules[dayScheduleIndex]
+          : null;
+
+      String timeText;
+      if (daySchedule == null || daySchedule.isClosed) {
+        timeText = 'Kapalı';
+      } else if (daySchedule.startTime != null && daySchedule.endTime != null) {
+        timeText =
+            '${_formatTime(daySchedule.startTime)} - ${_formatTime(daySchedule.endTime)}';
+      } else {
+        timeText = 'Kapalı';
+      }
+
+      children.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                title,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
+                dayName,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 4),
               Text(
-                value,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface,
+                timeText,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: timeText == 'Kapalı'
+                      ? AppColors.textSecondary
+                      : AppColors.textPrimary,
                 ),
               ),
             ],
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    return Column(children: children);
   }
 
   String _formatTime(String? timeStr) {

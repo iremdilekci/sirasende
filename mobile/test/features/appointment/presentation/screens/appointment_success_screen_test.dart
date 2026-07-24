@@ -24,17 +24,17 @@ void main() {
 
         expect(find.text('Randevunuz Oluşturuldu'), findsOneWidget);
         expect(
-          find.text('Randevu bilgileriniz başarıyla kaydedildi.'),
+          find.text('Randevu talebiniz işletmeye iletildi.'),
           findsOneWidget,
         );
         expect(find.text('Berber Ahmet'), findsOneWidget);
         expect(find.text('22 Temmuz 2026'), findsOneWidget);
         expect(find.text('09:00 – 09:30'), findsOneWidget);
         expect(
-          find.text('Beklemede'),
+          find.text('Onay Bekliyor'),
           findsOneWidget,
         ); // Translated from 'pending'
-        expect(find.text('Ana Sayfaya Dön'), findsOneWidget);
+        expect(find.text('Ana sayfaya dön'), findsOneWidget);
       },
     );
 

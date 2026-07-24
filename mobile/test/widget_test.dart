@@ -87,11 +87,11 @@ void main() {
     // Verify that the app title and onboarding texts are present.
     expect(find.text('SıraSende'), findsWidgets);
     expect(
-      find.text('Randevunuzu kolayca oluşturun veya işletmenizi yönetin.'),
+      find.text('Randevunuzu kolayca alın veya işletmenizi yönetin.'),
       findsOneWidget,
     );
     expect(find.text('Müşteri olarak devam et'), findsOneWidget);
-    expect(find.text('Esnaf girişi'), findsOneWidget);
+    expect(find.text('Esnaf olarak devam et'), findsOneWidget);
 
     // Verify that the old counter components are gone.
     expect(find.text('0'), findsNothing);

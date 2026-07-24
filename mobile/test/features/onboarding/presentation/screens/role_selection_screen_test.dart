@@ -109,11 +109,11 @@ void main() {
 
       expect(find.text('SıraSende'), findsOneWidget);
       expect(
-        find.text('Randevunuzu kolayca oluşturun veya işletmenizi yönetin.'),
+        find.text('Randevunuzu kolayca alın veya işletmenizi yönetin.'),
         findsOneWidget,
       );
       expect(find.text('Müşteri olarak devam et'), findsOneWidget);
-      expect(find.text('Esnaf girişi'), findsOneWidget);
+      expect(find.text('Esnaf olarak devam et'), findsOneWidget);
     });
 
     testWidgets('should fit within small screen size without overflow', (
@@ -181,12 +181,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap esnaf button
-      await tester.tap(find.text('Esnaf girişi'));
+      await tester.tap(find.text('Esnaf olarak devam et'));
       await tester.pumpAndSettle();
 
       // Verify we arrived at the admin login screen
-      expect(find.text('Esnaf Girişi'), findsOneWidget);
-      expect(find.text('Esnaf Paneline Giriş Yapın'), findsOneWidget);
+      expect(find.text('İşletme Girişi'), findsWidgets);
     });
   });
 }

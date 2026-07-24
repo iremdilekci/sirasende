@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sirasende_mobile/shared/widgets/app_button.dart';
+import '../../core/theme/app_colors.dart';
+import 'app_button.dart';
 
 class AppEmptyState extends StatelessWidget {
   final String title;
@@ -30,28 +31,27 @@ class AppEmptyState extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                size: 64,
-                color: Theme.of(context).colorScheme.primary.withAlpha(153),
-              ),
+              Icon(icon, size: 64, color: AppColors.primary.withOpacity(0.6)),
               const SizedBox(height: 16),
             ],
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             if (message != null) ...[
               const SizedBox(height: 8),
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
