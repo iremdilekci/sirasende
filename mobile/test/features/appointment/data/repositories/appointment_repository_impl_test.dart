@@ -56,6 +56,17 @@ class FakeAppointmentRemoteDataSource implements AppointmentRemoteDataSource {
     if (error != null) throw error!;
     return result!;
   }
+
+  int syncCallCount = 0;
+  String? lastSyncId;
+
+  @override
+  Future<Appointment> syncGoogleCalendar({required String id}) async {
+    syncCallCount++;
+    lastSyncId = id;
+    if (error != null) throw error!;
+    return result!;
+  }
 }
 
 void main() {
@@ -152,6 +163,19 @@ void main() {
         expect(fakeRemoteDS.updateCallCount, 1);
         expect(fakeRemoteDS.lastUpdateId, 'a1b2');
         expect(fakeRemoteDS.lastUpdateStatus, 'confirmed');
+      },
+    );
+
+    test(
+      'should delegate syncGoogleCalendar to remote data source and return value on success',
+      () async {
+        fakeRemoteDS.result = dummyAppointment;
+
+        final result = await repository.syncGoogleCalendar(id: 'a1b2');
+
+        expect(result, dummyAppointment);
+        expect(fakeRemoteDS.syncCallCount, 1);
+        expect(fakeRemoteDS.lastSyncId, 'a1b2');
       },
     );
   });

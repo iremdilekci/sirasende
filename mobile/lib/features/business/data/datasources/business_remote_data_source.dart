@@ -5,7 +5,6 @@ import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 
-
 class BusinessRemoteDataSource {
   final Dio _dio;
 

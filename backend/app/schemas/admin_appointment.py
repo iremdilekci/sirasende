@@ -17,6 +17,9 @@ class AdminAppointmentOut(BaseModel):
     status: AppointmentStatus
     created_at: datetime
     updated_at: datetime
+    calendar_sync_status: str = "not_connected"
+    calendar_event_created: bool = False
+    calendar_sync_error: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

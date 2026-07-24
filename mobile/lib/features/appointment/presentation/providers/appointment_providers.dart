@@ -203,3 +203,44 @@ final adminDashboardSummaryProvider = Provider.autoDispose
         error: (err, stack) => AsyncValue.error(err, stack),
       );
     });
+
+class GoogleCalendarSyncController extends AsyncNotifier<void> {
+  @override
+  FutureOr<void> build() {
+    // idle state
+  }
+
+  Future<void> syncAppointment({
+    required String id,
+    required void Function() onSuccess,
+    required void Function(String message) onError,
+  }) async {
+    if (state.isLoading) return;
+
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(() async {
+      final repository = ref.read(appointmentRepositoryProvider);
+      await repository.syncGoogleCalendar(id: id);
+    });
+
+    if (result.hasError) {
+      final error = result.error;
+      final message = error is AppException
+          ? error.message
+          : 'Senkronizasyon işlemi gerçekleştirilirken bir sorun oluştu. Lütfen tekrar deneyin.';
+      state = AsyncValue.error(
+        error ?? message,
+        result.stackTrace ?? StackTrace.current,
+      );
+      onError(message);
+    } else {
+      state = const AsyncValue.data(null);
+      onSuccess();
+    }
+  }
+}
+
+final googleCalendarSyncControllerProvider =
+    AsyncNotifierProvider.autoDispose<GoogleCalendarSyncController, void>(
+      GoogleCalendarSyncController.new,
+    );

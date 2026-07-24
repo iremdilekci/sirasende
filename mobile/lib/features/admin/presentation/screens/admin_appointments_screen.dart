@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
 
 class AdminAppointmentsScreen extends ConsumerStatefulWidget {
@@ -80,6 +81,128 @@ class _AdminAppointmentsScreenState
       default:
         return 'Bilinmiyor';
     }
+  }
+
+  Widget _buildCalendarSyncStatus(
+    Appointment appointment,
+    WidgetRef ref,
+    BuildContext context,
+  ) {
+    final status = appointment.calendarSyncStatus;
+
+    Color chipColor;
+    IconData icon;
+    String text;
+    bool showRetry = false;
+
+    switch (status) {
+      case 'synced':
+        chipColor = Colors.green.shade700;
+        icon = Icons.check_circle_outline;
+        text = 'Google Takvim\'e eklendi';
+        break;
+      case 'failed':
+        chipColor = Colors.red.shade700;
+        icon = Icons.sync_problem;
+        text = 'Senkronizasyon başarısız';
+        showRetry = true;
+        break;
+      case 'deleted':
+        chipColor = Colors.grey.shade700;
+        icon = Icons.sync_disabled;
+        text = 'Google Takvim etkinliği kaldırıldı';
+        break;
+      case 'pending':
+        chipColor = Colors.amber.shade700;
+        icon = Icons.sync;
+        text = 'Senkronizasyon bekliyor';
+        break;
+      case 'not_connected':
+      default:
+        return const SizedBox.shrink();
+    }
+
+    final syncState = ref.watch(googleCalendarSyncControllerProvider);
+    final isSyncing = syncState.isLoading;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 14, color: chipColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: TextStyle(
+                      color: chipColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (showRetry) ...[
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: isSyncing
+                  ? null
+                  : () {
+                      ref
+                          .read(googleCalendarSyncControllerProvider.notifier)
+                          .syncAppointment(
+                            id: appointment.id,
+                            onSuccess: () {
+                              ref.invalidate(adminAppointmentsProvider);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Randevu başarıyla senkronize edildi.',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            },
+                            onError: (msg) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Senkronizasyon hatası: $msg'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            },
+                          );
+                    },
+              icon: isSyncing
+                  ? const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                      ),
+                    )
+                  : const Icon(Icons.refresh, size: 14),
+              label: const Text('Tekrar Dene', style: TextStyle(fontSize: 12)),
+              style: TextButton.styleFrom(
+                foregroundColor: chipColor,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   String _mapErrorMessage(Object? error) {
@@ -449,6 +572,11 @@ class _AdminAppointmentsScreenState
                                       ],
                                     ),
                                   ],
+                                ),
+                                _buildCalendarSyncStatus(
+                                  appointment,
+                                  ref,
+                                  context,
                                 ),
                                 if (appointment.customerNote != null &&
                                     appointment.customerNote!.isNotEmpty) ...[

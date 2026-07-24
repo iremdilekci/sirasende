@@ -44,6 +44,11 @@ class FakeAppointmentRepository implements AppointmentRepository {
   }) async {
     throw UnimplementedError();
   }
+
+  @override
+  Future<Appointment> syncGoogleCalendar({required String id}) async {
+    throw UnimplementedError();
+  }
 }
 
 void main() {

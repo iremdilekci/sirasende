@@ -17,7 +17,6 @@ class FakeAuthController extends AuthController {
   }
 }
 
-
 class FakeBusinessRepository implements BusinessRepository {
   List<BusinessSchedule>? lastUpdateSchedules;
 

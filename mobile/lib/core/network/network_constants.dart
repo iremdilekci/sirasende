@@ -24,5 +24,6 @@ class NetworkConstants {
   static const adminBusiness = '/api/v1/admin/business';
   static const googleCalendarStatus = '/api/v1/admin/google-calendar/status';
   static const googleCalendarConnect = '/api/v1/admin/google-calendar/connect';
-  static const googleCalendarConnection = '/api/v1/admin/google-calendar/connection';
+  static const googleCalendarConnection =
+      '/api/v1/admin/google-calendar/connection';
 }

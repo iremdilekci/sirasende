@@ -10,6 +10,9 @@ class Appointment {
   final String status;
   final String createdAt;
   final String updatedAt;
+  final String calendarSyncStatus;
+  final bool calendarEventCreated;
+  final String? calendarSyncError;
 
   const Appointment({
     required this.id,
@@ -23,6 +26,9 @@ class Appointment {
     required this.status,
     required this.createdAt,
     required this.updatedAt,
+    this.calendarSyncStatus = 'not_connected',
+    this.calendarEventCreated = false,
+    this.calendarSyncError,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
@@ -51,6 +57,10 @@ class Appointment {
       status: json['status'] as String,
       createdAt: json['created_at'] as String,
       updatedAt: json['updated_at'] as String,
+      calendarSyncStatus:
+          (json['calendar_sync_status'] as String?) ?? 'not_connected',
+      calendarEventCreated: (json['calendar_event_created'] as bool?) ?? false,
+      calendarSyncError: json['calendar_sync_error'] as String?,
     );
   }
 
@@ -68,7 +78,10 @@ class Appointment {
         other.endTime == endTime &&
         other.status == status &&
         other.createdAt == createdAt &&
-        other.updatedAt == updatedAt;
+        other.updatedAt == updatedAt &&
+        other.calendarSyncStatus == calendarSyncStatus &&
+        other.calendarEventCreated == calendarEventCreated &&
+        other.calendarSyncError == calendarSyncError;
   }
 
   @override
@@ -84,5 +97,8 @@ class Appointment {
     status,
     createdAt,
     updatedAt,
+    calendarSyncStatus,
+    calendarEventCreated,
+    calendarSyncError,
   );
 }

@@ -186,24 +186,32 @@ void main() {
       },
     );
 
-    test('updateAdminBusiness should propagate schedules list correctly', () async {
-      fakeDataSource.businessResult = const Business(
-        id: '1',
-        name: 'Test',
-        slug: 'test',
-        slotDurationMinutes: 30,
-        isActive: true,
-      );
-      final schedules = [
-        const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-      ];
-      
-      await repository.updateAdminBusiness(
-        name: 'Test',
-        schedules: schedules,
-      );
+    test(
+      'updateAdminBusiness should propagate schedules list correctly',
+      () async {
+        fakeDataSource.businessResult = const Business(
+          id: '1',
+          name: 'Test',
+          slug: 'test',
+          slotDurationMinutes: 30,
+          isActive: true,
+        );
+        final schedules = [
+          const BusinessSchedule(
+            dayOfWeek: 0,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+        ];
 
-      expect(fakeDataSource.lastUpdateSchedules, schedules);
-    });
+        await repository.updateAdminBusiness(
+          name: 'Test',
+          schedules: schedules,
+        );
+
+        expect(fakeDataSource.lastUpdateSchedules, schedules);
+      },
+    );
   });
 }

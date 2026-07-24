@@ -132,7 +132,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         if (sched.startTime == null || sched.endTime == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${turkishDays[sched.dayOfWeek]} günü için açılış ve kapanış saatleri zorunludur.'),
+              content: Text(
+                '${turkishDays[sched.dayOfWeek]} günü için açılış ve kapanış saatleri zorunludur.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -146,7 +148,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           if (endMinutes <= startMinutes) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.'),
+                content: Text(
+                  '${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -221,8 +225,12 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     if (_localSchedules == null) return;
     setState(() {
       final sched = _localSchedules![index];
-      final defaultStart = _startTime != null ? _timeOfDayToBackendString(_startTime!) : '09:00:00';
-      final defaultEnd = _endTime != null ? _timeOfDayToBackendString(_endTime!) : '18:00:00';
+      final defaultStart = _startTime != null
+          ? _timeOfDayToBackendString(_startTime!)
+          : '09:00:00';
+      final defaultEnd = _endTime != null
+          ? _timeOfDayToBackendString(_endTime!)
+          : '18:00:00';
 
       _localSchedules![index] = sched.copyWith(
         isClosed: !isOpen,
@@ -234,7 +242,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
 
   Future<void> _selectDayStartTime(BuildContext context, int index) async {
     final sched = _localSchedules![index];
-    final parsed = _parseTimeString(sched.startTime) ?? const TimeOfDay(hour: 9, minute: 0);
+    final parsed =
+        _parseTimeString(sched.startTime) ??
+        const TimeOfDay(hour: 9, minute: 0);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: parsed,
@@ -256,7 +266,8 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
 
   Future<void> _selectDayEndTime(BuildContext context, int index) async {
     final sched = _localSchedules![index];
-    final parsed = _parseTimeString(sched.endTime) ?? const TimeOfDay(hour: 18, minute: 0);
+    final parsed =
+        _parseTimeString(sched.endTime) ?? const TimeOfDay(hour: 18, minute: 0);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: parsed,
@@ -576,14 +587,18 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                               child: Column(
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Expanded(
                                         child: Text(
                                           dayName,
-                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleMedium
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                         ),
                                       ),
                                       Row(
@@ -591,7 +606,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                           Text(
                                             isOpen ? 'Açık' : 'Kapalı',
                                             style: TextStyle(
-                                              color: isOpen ? Colors.green : Colors.grey,
+                                              color: isOpen
+                                                  ? Colors.green
+                                                  : Colors.grey,
                                             ),
                                           ),
                                           const SizedBox(width: 8),
@@ -599,7 +616,8 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                             value: isOpen,
                                             onChanged: isSaving
                                                 ? null
-                                                : (val) => _toggleDay(index, val),
+                                                : (val) =>
+                                                      _toggleDay(index, val),
                                           ),
                                         ],
                                       ),
@@ -612,21 +630,32 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                         child: InkWell(
                                           onTap: (!isOpen || isSaving)
                                               ? null
-                                              : () => _selectDayStartTime(context, index),
-                                          borderRadius: BorderRadius.circular(8),
+                                              : () => _selectDayStartTime(
+                                                  context,
+                                                  index,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: Opacity(
                                             opacity: isOpen ? 1.0 : 0.5,
                                             child: InputDecorator(
                                               decoration: const InputDecoration(
                                                 labelText: 'Açılış Saati',
                                                 border: OutlineInputBorder(),
-                                                prefixIcon: Icon(Icons.access_time),
+                                                prefixIcon: Icon(
+                                                  Icons.access_time,
+                                                ),
                                               ),
                                               child: Text(
                                                 sched.startTime != null
-                                                    ? _formatTimeString(sched.startTime!)
+                                                    ? _formatTimeString(
+                                                        sched.startTime!,
+                                                      )
                                                     : '--:--',
-                                                style: Theme.of(context).textTheme.bodyLarge,
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge,
                                               ),
                                             ),
                                           ),
@@ -637,21 +666,32 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                         child: InkWell(
                                           onTap: (!isOpen || isSaving)
                                               ? null
-                                              : () => _selectDayEndTime(context, index),
-                                          borderRadius: BorderRadius.circular(8),
+                                              : () => _selectDayEndTime(
+                                                  context,
+                                                  index,
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: Opacity(
                                             opacity: isOpen ? 1.0 : 0.5,
                                             child: InputDecorator(
                                               decoration: const InputDecoration(
                                                 labelText: 'Kapanış Saati',
                                                 border: OutlineInputBorder(),
-                                                prefixIcon: Icon(Icons.access_time_filled),
+                                                prefixIcon: Icon(
+                                                  Icons.access_time_filled,
+                                                ),
                                               ),
                                               child: Text(
                                                 sched.endTime != null
-                                                    ? _formatTimeString(sched.endTime!)
+                                                    ? _formatTimeString(
+                                                        sched.endTime!,
+                                                      )
                                                     : '--:--',
-                                                style: Theme.of(context).textTheme.bodyLarge,
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyLarge,
                                               ),
                                             ),
                                           ),
@@ -770,7 +810,8 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                       const SizedBox(width: 8),
                       Text(
                         'Google Takvim Bağlı',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               color: Colors.green,
                               fontWeight: FontWeight.bold,
                             ),
@@ -786,7 +827,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: isLoading ? null : _showDisconnectConfirmationDialog,
+                      onPressed: isLoading
+                          ? null
+                          : _showDisconnectConfirmationDialog,
                       icon: const Icon(Icons.link_off),
                       label: const Text('Bağlantıyı Kaldır'),
                     ),
@@ -824,9 +867,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       loading: () => const Card(
         child: Padding(
           padding: EdgeInsets.all(16.0),
-          child: Center(
-            child: CircularProgressIndicator(),
-          ),
+          child: Center(child: CircularProgressIndicator()),
         ),
       ),
       error: (error, _) => Card(
@@ -859,10 +900,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       onError: (msg) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
         }
       },
@@ -872,10 +910,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       final uri = Uri.parse(authUrl);
       try {
         if (await canLaunchUrl(uri)) {
-          await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
         } else {
           throw Exception('URL açılamadı.');
         }
@@ -915,28 +950,27 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     );
 
     if (confirmed == true && mounted) {
-      await ref.read(googleCalendarControllerProvider.notifier).disconnect(
-        onSuccess: () {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Google Takvim bağlantısı kaldırıldı.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        },
-        onError: (msg) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(msg),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-      );
+      await ref
+          .read(googleCalendarControllerProvider.notifier)
+          .disconnect(
+            onSuccess: () {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Google Takvim bağlantısı kaldırıldı.'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            onError: (msg) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                );
+              }
+            },
+          );
     }
   }
 }

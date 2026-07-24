@@ -128,10 +128,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final status = state.uri.queryParameters['status'];
           final error = state.uri.queryParameters['error'];
-          return GoogleCalendarCallbackScreen(
-            status: status,
-            error: error,
-          );
+          return GoogleCalendarCallbackScreen(status: status, error: error);
         },
       ),
     ],

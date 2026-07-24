@@ -18,9 +18,13 @@ class FakeBusinessRepository implements BusinessRepository {
   @override
   Future<List<Business>> getBusinesses() async => throw UnimplementedError();
   @override
-  Future<Business> getBusinessBySlug(String slug) async => throw UnimplementedError();
+  Future<Business> getBusinessBySlug(String slug) async =>
+      throw UnimplementedError();
   @override
-  Future<List<Slot>> getBusinessSlots({required String slug, required String date}) async => throw UnimplementedError();
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async => throw UnimplementedError();
 
   @override
   Future<Business> getAdminBusiness() async {
@@ -74,27 +78,33 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
 
 void main() {
   group('Google Calendar Connection Tests', () {
-    test('GoogleCalendarConnectionStatus model parses connected response correctly', () {
-      final json = {
-        'connected': true,
-        'google_account_email': 'owner@example.com',
-        'connected_at': '2026-07-24T01:00:00Z',
-        'granted_scopes': 'calendar.events',
-      };
-      final status = GoogleCalendarConnectionStatus.fromJson(json);
-      expect(status.connected, isTrue);
-      expect(status.googleAccountEmail, 'owner@example.com');
-      expect(status.connectedAt, isNotNull);
-      expect(status.grantedScopes, 'calendar.events');
-    });
+    test(
+      'GoogleCalendarConnectionStatus model parses connected response correctly',
+      () {
+        final json = {
+          'connected': true,
+          'google_account_email': 'owner@example.com',
+          'connected_at': '2026-07-24T01:00:00Z',
+          'granted_scopes': 'calendar.events',
+        };
+        final status = GoogleCalendarConnectionStatus.fromJson(json);
+        expect(status.connected, isTrue);
+        expect(status.googleAccountEmail, 'owner@example.com');
+        expect(status.connectedAt, isNotNull);
+        expect(status.grantedScopes, 'calendar.events');
+      },
+    );
 
-    test('GoogleCalendarConnectionStatus model parses disconnected response correctly', () {
-      final json = {'connected': false};
-      final status = GoogleCalendarConnectionStatus.fromJson(json);
-      expect(status.connected, isFalse);
-      expect(status.googleAccountEmail, isNull);
-      expect(status.connectedAt, isNull);
-    });
+    test(
+      'GoogleCalendarConnectionStatus model parses disconnected response correctly',
+      () {
+        final json = {'connected': false};
+        final status = GoogleCalendarConnectionStatus.fromJson(json);
+        expect(status.connected, isFalse);
+        expect(status.googleAccountEmail, isNull);
+        expect(status.connectedAt, isNull);
+      },
+    );
 
     test('GoogleCalendarConnectResult model parses response correctly', () {
       final json = {'authorization_url': 'https://accounts.google.com/oauth'};
@@ -132,44 +142,54 @@ void main() {
       return ProviderScope(
         overrides: [
           businessRepositoryProvider.overrideWithValue(fakeBusinessRepo),
-          googleCalendarRepositoryProvider.overrideWithValue(fakeGoogleCalendarRepo),
+          googleCalendarRepositoryProvider.overrideWithValue(
+            fakeGoogleCalendarRepo,
+          ),
         ],
-        child: MaterialApp(
-          home: child,
-        ),
+        child: MaterialApp(home: child),
       );
     }
 
-    testWidgets('Shows disconnect state with connect button when disconnected', (tester) async {
-      fakeGoogleCalendarRepo.statusResult = const GoogleCalendarConnectionStatus(connected: false);
+    testWidgets('Shows disconnect state with connect button when disconnected', (
+      tester,
+    ) async {
+      fakeGoogleCalendarRepo.statusResult =
+          const GoogleCalendarConnectionStatus(connected: false);
 
       await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('Google Takvim Entegrasyonu'), findsOneWidget);
       expect(
-        find.text('Randevularınızı Google Takviminiz ile senkronize etmek için hesabınızı bağlayın.'),
+        find.text(
+          'Randevularınızı Google Takviminiz ile senkronize etmek için hesabınızı bağlayın.',
+        ),
         findsOneWidget,
       );
       expect(find.text('Google Takvim\'i Bağla'), findsOneWidget);
     });
 
-    testWidgets('Shows connected state with account email and link-off button when connected', (tester) async {
-      fakeGoogleCalendarRepo.statusResult = GoogleCalendarConnectionStatus(
-        connected: true,
-        googleAccountEmail: 'business@gmail.com',
-        connectedAt: DateTime.now(),
-      );
+    testWidgets(
+      'Shows connected state with account email and link-off button when connected',
+      (tester) async {
+        fakeGoogleCalendarRepo.statusResult = GoogleCalendarConnectionStatus(
+          connected: true,
+          googleAccountEmail: 'business@gmail.com',
+          connectedAt: DateTime.now(),
+        );
 
-      await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Google Takvim Bağlı'), findsOneWidget);
-      expect(find.text('Bağlı Hesap: business@gmail.com'), findsOneWidget);
-      expect(find.text('Bağlantıyı Kaldır'), findsOneWidget);
-    });
+        expect(find.text('Google Takvim Bağlı'), findsOneWidget);
+        expect(find.text('Bağlı Hesap: business@gmail.com'), findsOneWidget);
+        expect(find.text('Bağlantıyı Kaldır'), findsOneWidget);
+      },
+    );
 
-    testWidgets('Shows disconnection confirmation dialog and cancels', (tester) async {
+    testWidgets('Shows disconnection confirmation dialog and cancels', (
+      tester,
+    ) async {
       fakeGoogleCalendarRepo.statusResult = GoogleCalendarConnectionStatus(
         connected: true,
         googleAccountEmail: 'business@gmail.com',
@@ -199,34 +219,53 @@ void main() {
       expect(fakeGoogleCalendarRepo.disconnectCalls, 0);
     });
 
-    testWidgets('GoogleCalendarCallbackScreen displays success correctly', (tester) async {
-      await tester.pumpWidget(makeTestableWidget(
-        const GoogleCalendarCallbackScreen(status: 'success'),
-      ));
+    testWidgets('GoogleCalendarCallbackScreen displays success correctly', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        makeTestableWidget(
+          const GoogleCalendarCallbackScreen(status: 'success'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Bağlantı Başarılı!'), findsOneWidget);
       expect(
-        find.text('Google Takvim hesabınız başarıyla bağlandı. Profil sayfasına yönlendiriliyorsunuz...'),
+        find.text(
+          'Google Takvim hesabınız başarıyla bağlandı. Profil sayfasına yönlendiriliyorsunuz...',
+        ),
         findsOneWidget,
       );
     });
 
-    testWidgets('GoogleCalendarCallbackScreen displays failure correctly', (tester) async {
-      await tester.pumpWidget(makeTestableWidget(
-        const GoogleCalendarCallbackScreen(status: 'failure', error: 'OAuth yetkilendirmesi başarısız oldu.'),
-      ));
+    testWidgets('GoogleCalendarCallbackScreen displays failure correctly', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        makeTestableWidget(
+          const GoogleCalendarCallbackScreen(
+            status: 'failure',
+            error: 'OAuth yetkilendirmesi başarısız oldu.',
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Bağlantı Başarısız!'), findsOneWidget);
-      expect(find.text('OAuth yetkilendirmesi başarısız oldu.'), findsOneWidget);
+      expect(
+        find.text('OAuth yetkilendirmesi başarısız oldu.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('Small screen 320x568 overflow protection test', (tester) async {
+    testWidgets('Small screen 320x568 overflow protection test', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1.0;
 
-      fakeGoogleCalendarRepo.statusResult = const GoogleCalendarConnectionStatus(connected: false);
+      fakeGoogleCalendarRepo.statusResult =
+          const GoogleCalendarConnectionStatus(connected: false);
 
       await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
       await tester.pumpAndSettle();

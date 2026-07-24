@@ -215,48 +215,66 @@ void main() {
       },
     );
 
-    test('adminBusinessUpdateController invalidates adminBusinessProvider on success', () async {
-      fakeRepo.businessResult = dummyBusiness;
+    test(
+      'adminBusinessUpdateController invalidates adminBusinessProvider on success',
+      () async {
+        fakeRepo.businessResult = dummyBusiness;
 
-      // Trigger initial read
-      await container.read(adminBusinessProvider.future);
-      expect(fakeRepo.getAdminBusinessCount, 1);
+        // Trigger initial read
+        await container.read(adminBusinessProvider.future);
+        expect(fakeRepo.getAdminBusinessCount, 1);
 
-      final controller = container.read(adminBusinessUpdateControllerProvider.notifier);
-      
-      var successCalled = false;
-      await controller.updateBusiness(
-        name: 'Updated Name',
-        schedules: [
-          const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false)
-        ],
-        onSuccess: () => successCalled = true,
-        onError: (msg) {},
-      );
+        final controller = container.read(
+          adminBusinessUpdateControllerProvider.notifier,
+        );
 
-      expect(successCalled, isTrue);
+        var successCalled = false;
+        await controller.updateBusiness(
+          name: 'Updated Name',
+          schedules: [
+            const BusinessSchedule(
+              dayOfWeek: 0,
+              startTime: '09:00:00',
+              endTime: '18:00:00',
+              isClosed: false,
+            ),
+          ],
+          onSuccess: () => successCalled = true,
+          onError: (msg) {},
+        );
 
-      // Re-read provider to trigger refetch
-      await container.read(adminBusinessProvider.future);
-      expect(fakeRepo.getAdminBusinessCount, 2);
+        expect(successCalled, isTrue);
 
-      expect(fakeRepo.lastUpdateSchedules, isNotNull);
-      expect(fakeRepo.lastUpdateSchedules![0].dayOfWeek, 0);
-    });
+        // Re-read provider to trigger refetch
+        await container.read(adminBusinessProvider.future);
+        expect(fakeRepo.getAdminBusinessCount, 2);
 
-    test('adminBusinessUpdateController triggers onError on exception', () async {
-      fakeRepo.error = const AppException(message: 'Validasyon Hatası', code: 'VALIDATION_ERROR');
+        expect(fakeRepo.lastUpdateSchedules, isNotNull);
+        expect(fakeRepo.lastUpdateSchedules![0].dayOfWeek, 0);
+      },
+    );
 
-      final controller = container.read(adminBusinessUpdateControllerProvider.notifier);
-      
-      String? errorMessage;
-      await controller.updateBusiness(
-        name: 'Updated Name',
-        onSuccess: () {},
-        onError: (msg) => errorMessage = msg,
-      );
+    test(
+      'adminBusinessUpdateController triggers onError on exception',
+      () async {
+        fakeRepo.error = const AppException(
+          message: 'Validasyon Hatası',
+          code: 'VALIDATION_ERROR',
+        );
 
-      expect(errorMessage, 'Validasyon Hatası');
-    });
+        final controller = container.read(
+          adminBusinessUpdateControllerProvider.notifier,
+        );
+
+        String? errorMessage;
+        await controller.updateBusiness(
+          name: 'Updated Name',
+          onSuccess: () {},
+          onError: (msg) => errorMessage = msg,
+        );
+
+        expect(errorMessage, 'Validasyon Hatası');
+      },
+    );
   });
 }

@@ -1,6 +1,9 @@
 from collections.abc import Sequence
 from datetime import date, datetime, timezone
+import logging
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -114,6 +117,15 @@ async def change_appointment_status(
         await session.flush()
         await session.commit()
         await session.refresh(appointment)
+
+        try:
+            from app.services.google_calendar import GoogleCalendarService
+            await GoogleCalendarService.sync_appointment_to_calendar(session, appointment.id)
+            await session.refresh(appointment)
+        except Exception as e:
+            # Resilient to calendar failures, they should not crash the status update
+            logger.error(f"Failed to run calendar sync after status update: {e}")
+
         return appointment
 
     except Exception:

@@ -63,6 +63,25 @@ class FakeAppointmentRepository implements AppointmentRepository {
       updatedAt: '2026-07-22T08:00:00Z',
     );
   }
+
+  @override
+  Future<Appointment> syncGoogleCalendar({required String id}) async {
+    return Appointment(
+      id: id,
+      businessId: 'b1',
+      customerName: 'Ahmet Can',
+      customerPhone: '05554443322',
+      customerNote: 'Saç kesimi',
+      appointmentDate: '2026-07-22',
+      startTime: '09:00',
+      endTime: '09:30',
+      status: 'confirmed',
+      createdAt: '2026-07-22T08:00:00Z',
+      updatedAt: '2026-07-22T08:00:00Z',
+      calendarSyncStatus: 'synced',
+      calendarEventCreated: true,
+    );
+  }
 }
 
 void main() {

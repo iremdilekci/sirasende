@@ -102,7 +102,8 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
     statusCalls++;
     if (error != null) throw error!;
-    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
+    return statusResult ??
+        const GoogleCalendarConnectionStatus(connected: false);
   }
 
   @override
@@ -147,7 +148,9 @@ void main() {
       return ProviderScope(
         overrides: [
           businessRepositoryProvider.overrideWithValue(fakeRepo),
-          googleCalendarRepositoryProvider.overrideWithValue(fakeGoogleCalendarRepo),
+          googleCalendarRepositoryProvider.overrideWithValue(
+            fakeGoogleCalendarRepo,
+          ),
         ],
         child: const MaterialApp(home: AdminProfileScreen()),
       );
@@ -319,7 +322,9 @@ void main() {
       },
     );
 
-    testWidgets('should display 7 days in correct order initially', (tester) async {
+    testWidgets('should display 7 days in correct order initially', (
+      tester,
+    ) async {
       await tester.pumpWidget(createWidgetUnderTest());
       await tester.pump();
       await tester.pump();
@@ -337,13 +342,48 @@ void main() {
     testWidgets('should render times from API to UI correctly', (tester) async {
       fakeRepo.businessResult = dummyBusiness.copyWith(
         schedules: [
-          const BusinessSchedule(dayOfWeek: 0, startTime: '10:00:00', endTime: '16:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 1, startTime: null, endTime: null, isClosed: true),
-          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(
+            dayOfWeek: 0,
+            startTime: '10:00:00',
+            endTime: '16:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 1,
+            startTime: null,
+            endTime: null,
+            isClosed: true,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 2,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 3,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 4,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 5,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 6,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
         ],
       );
 
@@ -376,16 +416,53 @@ void main() {
       expect(tester.widget<Switch>(switchFinder).value, isFalse);
     });
 
-    testWidgets('submitting with invalid hour ordering shows error', (tester) async {
+    testWidgets('submitting with invalid hour ordering shows error', (
+      tester,
+    ) async {
       fakeRepo.businessResult = dummyBusiness.copyWith(
         schedules: [
-          const BusinessSchedule(dayOfWeek: 0, startTime: '17:00:00', endTime: '16:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 1, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(
+            dayOfWeek: 0,
+            startTime: '17:00:00',
+            endTime: '16:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 1,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 2,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 3,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 4,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 5,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 6,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
         ],
       );
 
@@ -397,19 +474,59 @@ void main() {
       await tester.tap(find.text('Kaydet'));
       await tester.pump();
 
-      expect(find.text('Pazartesi günü kapanış saati açılıştan sonra olmalıdır.'), findsOneWidget);
+      expect(
+        find.text('Pazartesi günü kapanış saati açılıştan sonra olmalıdır.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('saving sends 7-day sorted payload with null for closed days', (tester) async {
+    testWidgets('saving sends 7-day sorted payload with null for closed days', (
+      tester,
+    ) async {
       fakeRepo.businessResult = dummyBusiness.copyWith(
         schedules: [
-          const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 1, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-          const BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+          const BusinessSchedule(
+            dayOfWeek: 0,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 1,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 2,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 3,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 4,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 5,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
+          const BusinessSchedule(
+            dayOfWeek: 6,
+            startTime: '09:00:00',
+            endTime: '18:00:00',
+            isClosed: false,
+          ),
         ],
       );
 
@@ -445,7 +562,7 @@ void main() {
       await tester.pump();
 
       expect(tester.takeException(), isNull);
-      
+
       // Reset view size
       tester.view.resetPhysicalSize();
       tester.view.resetDevicePixelRatio();

@@ -73,3 +73,67 @@ async def update_appointment_status(
             status_code=status.HTTP_409_CONFLICT,
             detail="Appointment cannot be completed before its end time",
         ) from None
+
+
+@router.post("/{appointment_id}/google-calendar/sync", response_model=AdminAppointmentOut)
+async def sync_appointment_google_calendar(
+    appointment_id: UUID,
+    session: AsyncSession = Depends(get_db),
+    current_admin: AdminUser = Depends(get_current_active_business_admin),
+) -> Appointment:
+    """Manually synchronize an appointment to Google Calendar.
+
+    Only confirmed or cancelled appointments belonging to the admin's business can be synchronized.
+    Requires an active Google Calendar connection.
+    """
+    from sqlalchemy import select
+    from app.models.appointment import Appointment, AppointmentStatus
+    from app.models.google_calendar_connection import GoogleCalendarConnection
+    from app.services.google_calendar import GoogleCalendarService
+
+    # 1. Fetch appointment
+    stmt = select(Appointment).where(
+        Appointment.id == appointment_id,
+        Appointment.business_id == current_admin.business_id
+    )
+    result = await session.execute(stmt)
+    appointment = result.scalars().first()
+
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Appointment not found",
+        )
+
+    # 2. Validate status: pending cannot be manually synced
+    if appointment.status == AppointmentStatus.PENDING:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Bekleyen randevular Google Takvim ile senkronize edilemez.",
+        )
+
+    # 3. Check Google connection
+    conn_stmt = select(GoogleCalendarConnection).where(
+        GoogleCalendarConnection.business_id == current_admin.business_id,
+        GoogleCalendarConnection.is_active == True
+    )
+    conn_result = await session.execute(conn_stmt)
+    connection = conn_result.scalars().first()
+
+    if not connection:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Aktif bir Google Takvim bağlantısı bulunmamaktadır.",
+        )
+
+    # 4. Trigger sync
+    await GoogleCalendarService.sync_appointment_to_calendar(session, appointment.id)
+    await session.refresh(appointment)
+
+    if appointment.google_calendar_sync_status == "failed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=appointment.google_calendar_last_error or "Senkronizasyon başarısız oldu.",
+        )
+
+    return appointment

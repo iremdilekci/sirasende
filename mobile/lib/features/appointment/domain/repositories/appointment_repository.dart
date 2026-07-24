@@ -16,4 +16,6 @@ abstract class AppointmentRepository {
     required String id,
     required String status,
   });
+
+  Future<Appointment> syncGoogleCalendar({required String id});
 }

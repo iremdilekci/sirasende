@@ -87,6 +87,23 @@ class AppointmentRemoteDataSource {
     }
   }
 
+  Future<Appointment> syncGoogleCalendar({required String id}) async {
+    try {
+      final response = await _dio.post(
+        '${NetworkConstants.adminAppointments}/${Uri.encodeComponent(id)}/google-calendar/sync',
+      );
+
+      final data = response.data;
+      if (data is! Map<String, dynamic>) {
+        throw const FormatException('Expected JSON map response');
+      }
+
+      return Appointment.fromJson(data);
+    } catch (e) {
+      throw _mapException(e);
+    }
+  }
+
   AppException _mapException(Object error) {
     if (error is DioException) {
       switch (error.type) {

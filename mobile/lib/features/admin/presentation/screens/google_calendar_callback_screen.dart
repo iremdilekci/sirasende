@@ -9,11 +9,7 @@ class GoogleCalendarCallbackScreen extends ConsumerStatefulWidget {
   final String? status;
   final String? error;
 
-  const GoogleCalendarCallbackScreen({
-    super.key,
-    this.status,
-    this.error,
-  });
+  const GoogleCalendarCallbackScreen({super.key, this.status, this.error});
 
   @override
   ConsumerState<GoogleCalendarCallbackScreen> createState() =>
@@ -30,7 +26,7 @@ class _GoogleCalendarCallbackScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Invalidate connection status to fetch the latest state from backend
       ref.invalidate(googleCalendarStatusProvider);
-      
+
       // Auto-navigate to profile after 3 seconds
       _redirectTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) {
@@ -49,7 +45,8 @@ class _GoogleCalendarCallbackScreenState
   @override
   Widget build(BuildContext context) {
     final isSuccess = widget.status == 'success';
-    final errorMessage = widget.error ?? 'Google hesabı bağlanamadı. Lütfen tekrar deneyin.';
+    final errorMessage =
+        widget.error ?? 'Google hesabı bağlanamadı. Lütfen tekrar deneyin.';
 
     return Scaffold(
       appBar: AppBar(
@@ -72,8 +69,8 @@ class _GoogleCalendarCallbackScreenState
                 Text(
                   isSuccess ? 'Bağlantı Başarılı!' : 'Bağlantı Başarısız!',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Text(

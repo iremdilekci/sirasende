@@ -1,9 +1,7 @@
 class GoogleCalendarConnectResult {
   final String authorizationUrl;
 
-  const GoogleCalendarConnectResult({
-    required this.authorizationUrl,
-  });
+  const GoogleCalendarConnectResult({required this.authorizationUrl});
 
   factory GoogleCalendarConnectResult.fromJson(Map<String, dynamic> json) {
     return GoogleCalendarConnectResult(

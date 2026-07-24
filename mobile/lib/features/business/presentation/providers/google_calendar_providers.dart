@@ -8,19 +8,23 @@ import 'package:sirasende_mobile/features/business/data/repositories/google_cale
 import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connection_status.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/google_calendar_repository.dart';
 
-final googleCalendarRemoteDataSourceProvider = Provider<GoogleCalendarRemoteDataSource>((ref) {
-  final dio = ref.watch(dioProvider);
-  return GoogleCalendarRemoteDataSource(dio);
-});
+final googleCalendarRemoteDataSourceProvider =
+    Provider<GoogleCalendarRemoteDataSource>((ref) {
+      final dio = ref.watch(dioProvider);
+      return GoogleCalendarRemoteDataSource(dio);
+    });
 
-final googleCalendarRepositoryProvider = Provider<GoogleCalendarRepository>((ref) {
+final googleCalendarRepositoryProvider = Provider<GoogleCalendarRepository>((
+  ref,
+) {
   final remoteDataSource = ref.watch(googleCalendarRemoteDataSourceProvider);
   return GoogleCalendarRepositoryImpl(remoteDataSource);
 });
 
-final googleCalendarStatusProvider = FutureProvider.autoDispose<GoogleCalendarConnectionStatus>((ref) {
-  return ref.watch(googleCalendarRepositoryProvider).getConnectionStatus();
-});
+final googleCalendarStatusProvider =
+    FutureProvider.autoDispose<GoogleCalendarConnectionStatus>((ref) {
+      return ref.watch(googleCalendarRepositoryProvider).getConnectionStatus();
+    });
 
 class GoogleCalendarController extends AsyncNotifier<void> {
   @override
@@ -71,5 +75,5 @@ class GoogleCalendarController extends AsyncNotifier<void> {
 
 final googleCalendarControllerProvider =
     AsyncNotifierProvider.autoDispose<GoogleCalendarController, void>(
-  GoogleCalendarController.new,
-);
+      GoogleCalendarController.new,
+    );

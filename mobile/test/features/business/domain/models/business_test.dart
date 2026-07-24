@@ -75,9 +75,24 @@ void main() {
     test('should parse and sort schedules in ascending dayOfWeek order', () {
       final schedDetailJson = Map<String, dynamic>.from(detailJson)
         ..['schedules'] = [
-          {'day_of_week': 2, 'start_time': '09:00:00', 'end_time': '18:00:00', 'is_closed': false},
-          {'day_of_week': 0, 'start_time': '09:00:00', 'end_time': '18:00:00', 'is_closed': false},
-          {'day_of_week': 1, 'start_time': '09:00:00', 'end_time': '18:00:00', 'is_closed': false},
+          {
+            'day_of_week': 2,
+            'start_time': '09:00:00',
+            'end_time': '18:00:00',
+            'is_closed': false,
+          },
+          {
+            'day_of_week': 0,
+            'start_time': '09:00:00',
+            'end_time': '18:00:00',
+            'is_closed': false,
+          },
+          {
+            'day_of_week': 1,
+            'start_time': '09:00:00',
+            'end_time': '18:00:00',
+            'is_closed': false,
+          },
         ];
 
       final business = Business.fromJson(schedDetailJson);
@@ -88,25 +103,39 @@ void main() {
     });
 
     test('should parse safely without schedules (legacy JSON support)', () {
-      final legacyJson = Map<String, dynamic>.from(detailJson)..remove('schedules');
+      final legacyJson = Map<String, dynamic>.from(detailJson)
+        ..remove('schedules');
       final business = Business.fromJson(legacyJson);
       expect(business.schedules, isEmpty);
     });
 
-    test('should take schedules changes into account for equality and hashCode', () {
-      final schedDetailJson1 = Map<String, dynamic>.from(detailJson)
-        ..['schedules'] = [
-          {'day_of_week': 0, 'start_time': '09:00:00', 'end_time': '18:00:00', 'is_closed': false},
-        ];
-      final schedDetailJson2 = Map<String, dynamic>.from(detailJson)
-        ..['schedules'] = [
-          {'day_of_week': 0, 'start_time': '10:00:00', 'end_time': '16:00:00', 'is_closed': false},
-        ];
+    test(
+      'should take schedules changes into account for equality and hashCode',
+      () {
+        final schedDetailJson1 = Map<String, dynamic>.from(detailJson)
+          ..['schedules'] = [
+            {
+              'day_of_week': 0,
+              'start_time': '09:00:00',
+              'end_time': '18:00:00',
+              'is_closed': false,
+            },
+          ];
+        final schedDetailJson2 = Map<String, dynamic>.from(detailJson)
+          ..['schedules'] = [
+            {
+              'day_of_week': 0,
+              'start_time': '10:00:00',
+              'end_time': '16:00:00',
+              'is_closed': false,
+            },
+          ];
 
-      final b1 = Business.fromJson(schedDetailJson1);
-      final b2 = Business.fromJson(schedDetailJson2);
-      expect(b1 == b2, isFalse);
-      expect(b1.hashCode == b2.hashCode, isFalse);
-    });
+        final b1 = Business.fromJson(schedDetailJson1);
+        final b2 = Business.fromJson(schedDetailJson2);
+        expect(b1 == b2, isFalse);
+        expect(b1.hashCode == b2.hashCode, isFalse);
+      },
+    );
   });
 }

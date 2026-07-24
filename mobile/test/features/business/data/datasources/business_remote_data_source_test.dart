@@ -243,81 +243,100 @@ void main() {
       );
     });
 
-    test('should fetch admin business and parse schedules list successfully', () async {
-      final detailData = {
-        'id': 'b1',
-        'name': 'B1',
-        'slug': 'b-1',
-        'slot_duration_minutes': 15,
-        'is_active': true,
-        'schedules': [
-          {'day_of_week': 0, 'start_time': '09:00:00', 'end_time': '18:00:00', 'is_closed': false},
-        ],
-      };
+    test(
+      'should fetch admin business and parse schedules list successfully',
+      () async {
+        final detailData = {
+          'id': 'b1',
+          'name': 'B1',
+          'slug': 'b-1',
+          'slot_duration_minutes': 15,
+          'is_active': true,
+          'schedules': [
+            {
+              'day_of_week': 0,
+              'start_time': '09:00:00',
+              'end_time': '18:00:00',
+              'is_closed': false,
+            },
+          ],
+        };
 
-      mockAdapter.handler = (options) {
-        expect(options.path, '/api/v1/admin/business');
-        return jsonResponse(detailData, 200);
-      };
+        mockAdapter.handler = (options) {
+          expect(options.path, '/api/v1/admin/business');
+          return jsonResponse(detailData, 200);
+        };
 
-      final result = await dataSource.fetchAdminBusiness();
-      expect(result.schedules.length, 1);
-      expect(result.schedules[0].dayOfWeek, 0);
-      expect(result.schedules[0].isClosed, isFalse);
-    });
+        final result = await dataSource.fetchAdminBusiness();
+        expect(result.schedules.length, 1);
+        expect(result.schedules[0].dayOfWeek, 0);
+        expect(result.schedules[0].isClosed, isFalse);
+      },
+    );
 
-    test('should serialize and send schedules list in update payload when provided', () async {
-      final detailData = {
-        'id': 'b1',
-        'name': 'New B1',
-        'slug': 'b-1',
-        'slot_duration_minutes': 15,
-        'is_active': true,
-        'schedules': [],
-      };
+    test(
+      'should serialize and send schedules list in update payload when provided',
+      () async {
+        final detailData = {
+          'id': 'b1',
+          'name': 'New B1',
+          'slug': 'b-1',
+          'slot_duration_minutes': 15,
+          'is_active': true,
+          'schedules': [],
+        };
 
-      mockAdapter.handler = (options) {
-        expect(options.path, '/api/v1/admin/business');
-        expect(options.method, 'PATCH');
-        final data = options.data as Map<String, dynamic>;
-        expect(data['schedules'], isNotNull);
-        expect(data['schedules'].length, 1);
-        expect(data['schedules'][0]['day_of_week'], 0);
-        return jsonResponse(detailData, 200);
-      };
+        mockAdapter.handler = (options) {
+          expect(options.path, '/api/v1/admin/business');
+          expect(options.method, 'PATCH');
+          final data = options.data as Map<String, dynamic>;
+          expect(data['schedules'], isNotNull);
+          expect(data['schedules'].length, 1);
+          expect(data['schedules'][0]['day_of_week'], 0);
+          return jsonResponse(detailData, 200);
+        };
 
-      final result = await dataSource.updateAdminBusiness(
-        name: 'New B1',
-        schedules: [
-          const BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        ],
-      );
-      expect(result.name, 'New B1');
-    });
+        final result = await dataSource.updateAdminBusiness(
+          name: 'New B1',
+          schedules: [
+            const BusinessSchedule(
+              dayOfWeek: 0,
+              startTime: '09:00:00',
+              endTime: '18:00:00',
+              isClosed: false,
+            ),
+          ],
+        );
+        expect(result.name, 'New B1');
+      },
+    );
 
-    test('should not include schedules field in update payload when not provided', () async {
-      final detailData = {
-        'id': 'b1',
-        'name': 'New B1',
-        'slug': 'b-1',
-        'slot_duration_minutes': 15,
-        'is_active': true,
-        'schedules': [],
-      };
+    test(
+      'should not include schedules field in update payload when not provided',
+      () async {
+        final detailData = {
+          'id': 'b1',
+          'name': 'New B1',
+          'slug': 'b-1',
+          'slot_duration_minutes': 15,
+          'is_active': true,
+          'schedules': [],
+        };
 
-      mockAdapter.handler = (options) {
-        expect(options.path, '/api/v1/admin/business');
-        expect(options.method, 'PATCH');
-        final data = options.data as Map<String, dynamic>;
-        expect(data.containsKey('schedules'), isFalse);
-        return jsonResponse(detailData, 200);
-      };
+        mockAdapter.handler = (options) {
+          expect(options.path, '/api/v1/admin/business');
+          expect(options.method, 'PATCH');
+          final data = options.data as Map<String, dynamic>;
+          expect(data.containsKey('schedules'), isFalse);
+          return jsonResponse(detailData, 200);
+        };
 
-      final result = await dataSource.updateAdminBusiness(
-        name: 'New B1',
-        schedules: null,
-      );
-      expect(result.name, 'New B1');
-    });
+        final result = await dataSource.updateAdminBusiness(
+          name: 'New B1',
+          schedules: null,
+        );
+        expect(result.name, 'New B1');
+      },
+    );
   });
 }

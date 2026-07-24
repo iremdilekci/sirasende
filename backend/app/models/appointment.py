@@ -1,9 +1,9 @@
-from datetime import date, time
+from datetime import date, datetime, time
 from enum import Enum
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, Enum as SQLAlchemyEnum, ForeignKey, Index, String, Text, Time, text
+from sqlalchemy import CheckConstraint, Date, DateTime, Enum as SQLAlchemyEnum, ForeignKey, Index, String, Text, Time, text
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,6 +19,14 @@ class AppointmentStatus(str, Enum):
     CONFIRMED = "confirmed"
     CANCELLED = "cancelled"
     COMPLETED = "completed"
+
+
+class GoogleCalendarSyncStatus(str, Enum):
+    NOT_CONNECTED = "not_connected"
+    PENDING = "pending"
+    SYNCED = "synced"
+    FAILED = "failed"
+    DELETED = "deleted"
 
 
 class Appointment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -61,5 +69,33 @@ class Appointment(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         server_default=AppointmentStatus.PENDING.value,
         index=True,
     )
+
+    # Google Calendar Sync fields
+    google_calendar_event_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    google_calendar_sync_status: Mapped[GoogleCalendarSyncStatus] = mapped_column(
+        SQLAlchemyEnum(
+            GoogleCalendarSyncStatus,
+            name="google_calendar_sync_status",
+            values_callable=lambda enum_class: [member.value for member in enum_class],
+        ),
+        nullable=False,
+        default=GoogleCalendarSyncStatus.NOT_CONNECTED,
+        server_default=GoogleCalendarSyncStatus.NOT_CONNECTED.value,
+        index=True,
+    )
+    google_calendar_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    google_calendar_last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    @property
+    def calendar_sync_status(self) -> str:
+        return self.google_calendar_sync_status.value
+
+    @property
+    def calendar_event_created(self) -> bool:
+        return self.google_calendar_event_id is not None
+
+    @property
+    def calendar_sync_error(self) -> str | None:
+        return self.google_calendar_last_error
 
     business: Mapped["Business"] = relationship(back_populates="appointments")

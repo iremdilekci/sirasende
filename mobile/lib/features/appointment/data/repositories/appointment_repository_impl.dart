@@ -34,4 +34,9 @@ class AppointmentRepositoryImpl implements AppointmentRepository {
   }) {
     return _remoteDataSource.updateAppointmentStatus(id: id, status: status);
   }
+
+  @override
+  Future<Appointment> syncGoogleCalendar({required String id}) {
+    return _remoteDataSource.syncGoogleCalendar(id: id);
+  }
 }

@@ -60,7 +60,9 @@ class Business {
     List<BusinessSchedule> parsedSchedules = [];
     if (schedulesJson != null) {
       parsedSchedules = schedulesJson
-          .map((item) => BusinessSchedule.fromJson(item as Map<String, dynamic>))
+          .map(
+            (item) => BusinessSchedule.fromJson(item as Map<String, dynamic>),
+          )
           .toList();
       parsedSchedules.sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek));
     }

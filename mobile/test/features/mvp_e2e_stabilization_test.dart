@@ -49,7 +49,10 @@ class FakeBusinessRepository implements BusinessRepository {
   }
 
   @override
-  Future<List<Slot>> getBusinessSlots({required String slug, required String date}) async {
+  Future<List<Slot>> getBusinessSlots({
+    required String slug,
+    required String date,
+  }) async {
     if (error != null) throw error!;
     return slots;
   }
@@ -114,7 +117,10 @@ class FakeAppointmentRepository implements AppointmentRepository {
   }
 
   @override
-  Future<List<Appointment>> getAdminAppointments({String? date, String? status}) async {
+  Future<List<Appointment>> getAdminAppointments({
+    String? date,
+    String? status,
+  }) async {
     return adminAppointments;
   }
 
@@ -139,6 +145,24 @@ class FakeAppointmentRepository implements AppointmentRepository {
       updatedAt: '2026-07-22T09:00:00Z',
     );
   }
+
+  @override
+  Future<Appointment> syncGoogleCalendar({required String id}) async {
+    return Appointment(
+      id: id,
+      businessId: '1',
+      customerName: 'Test Customer',
+      customerPhone: '+905554443322',
+      appointmentDate: '2026-07-22',
+      startTime: '09:00:00',
+      endTime: '09:30:00',
+      status: 'confirmed',
+      createdAt: '2026-07-22T09:00:00Z',
+      updatedAt: '2026-07-22T09:00:00Z',
+      calendarSyncStatus: 'synced',
+      calendarEventCreated: true,
+    );
+  }
 }
 
 class FakeAuthRepository implements AuthRepository {
@@ -161,7 +185,11 @@ class FakeAuthRepository implements AuthRepository {
         code: 'UNAUTHORIZED',
       );
     }
-    return const TokenResponse(accessToken: 'mock-token', tokenType: 'bearer', expiresIn: 3600);
+    return const TokenResponse(
+      accessToken: 'mock-token',
+      tokenType: 'bearer',
+      expiresIn: 3600,
+    );
   }
 
   @override
@@ -204,7 +232,8 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
     statusCalls++;
     if (error != null) throw error!;
-    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
+    return statusResult ??
+        const GoogleCalendarConnectionStatus(connected: false);
   }
 
   @override
@@ -238,13 +267,48 @@ void main() {
       workingStartTime: '09:00:00',
       workingEndTime: '18:00:00',
       schedules: [
-        BusinessSchedule(dayOfWeek: 0, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 1, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 2, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 3, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 4, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 5, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
-        BusinessSchedule(dayOfWeek: 6, startTime: '09:00:00', endTime: '18:00:00', isClosed: false),
+        BusinessSchedule(
+          dayOfWeek: 0,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 1,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 2,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 3,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 4,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 5,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
+        BusinessSchedule(
+          dayOfWeek: 6,
+          startTime: '09:00:00',
+          endTime: '18:00:00',
+          isClosed: false,
+        ),
       ],
     );
 
@@ -266,15 +330,17 @@ void main() {
           businessRepositoryProvider.overrideWithValue(fakeBusinessRepo),
           appointmentRepositoryProvider.overrideWithValue(fakeAppointmentRepo),
           authRepositoryProvider.overrideWithValue(fakeAuthRepo),
-          googleCalendarRepositoryProvider.overrideWithValue(fakeGoogleCalendarRepo),
+          googleCalendarRepositoryProvider.overrideWithValue(
+            fakeGoogleCalendarRepo,
+          ),
         ],
-        child: MaterialApp(
-          home: child,
-        ),
+        child: MaterialApp(home: child),
       );
     }
 
-    testWidgets('Onboarding screen displays client and admin choices', (tester) async {
+    testWidgets('Onboarding screen displays client and admin choices', (
+      tester,
+    ) async {
       await tester.pumpWidget(makeTestableWidget(const RoleSelectionScreen()));
       await tester.pumpAndSettle();
 
@@ -282,9 +348,13 @@ void main() {
       expect(find.text('Esnaf girişi'), findsOneWidget);
     });
 
-    testWidgets('Client list renders empty state when list is empty', (tester) async {
+    testWidgets('Client list renders empty state when list is empty', (
+      tester,
+    ) async {
       fakeBusinessRepo.businesses = [];
-      await tester.pumpWidget(makeTestableWidget(const CustomerBusinessListScreen()));
+      await tester.pumpWidget(
+        makeTestableWidget(const CustomerBusinessListScreen()),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -293,30 +363,38 @@ void main() {
 
     testWidgets('Client list renders businesses list properly', (tester) async {
       fakeBusinessRepo.businesses = [dummyBusiness];
-      await tester.pumpWidget(makeTestableWidget(const CustomerBusinessListScreen()));
+      await tester.pumpWidget(
+        makeTestableWidget(const CustomerBusinessListScreen()),
+      );
       await tester.pump();
       await tester.pump();
 
       expect(find.text('Berber Ahmet'), findsOneWidget);
     });
 
-    testWidgets('Client detail picking and appointment validation checks', (tester) async {
+    testWidgets('Client detail picking and appointment validation checks', (
+      tester,
+    ) async {
       fakeBusinessRepo.slots = [
         const Slot(startTime: '09:00:00', endTime: '09:30:00', available: true),
       ];
 
-      await tester.pumpWidget(makeTestableWidget(const BusinessDetailScreen(slug: 'berber-ahmet')));
+      await tester.pumpWidget(
+        makeTestableWidget(const BusinessDetailScreen(slug: 'berber-ahmet')),
+      );
       await tester.pump();
       await tester.pump();
 
       // Check business detail text
       expect(find.text('Berber Ahmet'), findsWidgets);
-      
+
       // Date Picker selected and slots loaded
       expect(find.text('09:00:00'), findsOneWidget);
     });
 
-    testWidgets('Appointment booking conflict 409 shows Turkish error', (tester) async {
+    testWidgets('Appointment booking conflict 409 shows Turkish error', (
+      tester,
+    ) async {
       fakeAppointmentRepo.throw409 = true;
 
       final args = AppointmentFormArgs(
@@ -327,12 +405,20 @@ void main() {
         endTime: '09:30:00',
       );
 
-      await tester.pumpWidget(makeTestableWidget(AppointmentFormScreen(args: args)));
+      await tester.pumpWidget(
+        makeTestableWidget(AppointmentFormScreen(args: args)),
+      );
       await tester.pump();
 
       // Doldur
-      await tester.enterText(find.widgetWithText(TextFormField, 'Ad Soyad'), 'Ahmet Yilmaz');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Telefon Numarası'), '05554443322');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Ad Soyad'),
+        'Ahmet Yilmaz',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Telefon Numarası'),
+        '05554443322',
+      );
 
       // Tıkla
       await tester.ensureVisible(find.text('Randevuyu Oluştur'));
@@ -340,17 +426,28 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Bu slot için zaten aktif bir randevu bulunmaktadır.'), findsOneWidget);
+      expect(
+        find.text('Bu slot için zaten aktif bir randevu bulunmaktadır.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('Admin login triggers error message on failure', (tester) async {
+    testWidgets('Admin login triggers error message on failure', (
+      tester,
+    ) async {
       fakeAuthRepo.throwOnLogin = true;
 
       await tester.pumpWidget(makeTestableWidget(const AdminLoginScreen()));
       await tester.pump();
 
-      await tester.enterText(find.widgetWithText(TextFormField, 'Kullanıcı adı veya e-posta'), 'wrong@example.com');
-      await tester.enterText(find.widgetWithText(TextFormField, 'Şifre'), 'wrongpassword');
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Kullanıcı adı veya e-posta'),
+        'wrong@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Şifre'),
+        'wrongpassword',
+      );
 
       await tester.tap(find.text('Giriş Yap'));
       await tester.pump();
@@ -359,7 +456,9 @@ void main() {
       expect(find.text('Geçersiz kullanıcı adı veya şifre.'), findsOneWidget);
     });
 
-    testWidgets('Admin profile weekly schedule closed day behavior', (tester) async {
+    testWidgets('Admin profile weekly schedule closed day behavior', (
+      tester,
+    ) async {
       await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
       await tester.pump();
       await tester.pump();
