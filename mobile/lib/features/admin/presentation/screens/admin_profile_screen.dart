@@ -1,14 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/core/theme/app_colors.dart';
+import 'package:sirasende_mobile/core/theme/app_radius.dart';
+import 'package:sirasende_mobile/core/theme/app_spacing.dart';
+import 'package:sirasende_mobile/core/theme/app_shadows.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
+import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:sirasende_mobile/shared/widgets/app_card.dart';
+import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
+import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
+import 'package:sirasende_mobile/shared/widgets/app_button.dart';
+import 'package:sirasende_mobile/shared/widgets/app_text_field.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/admin_bottom_navigation.dart';
+
+enum ProfileView {
+  profile,
+  editProfile,
+  editSchedules,
+}
 
 class AdminProfileScreen extends ConsumerStatefulWidget {
-  const AdminProfileScreen({super.key});
+  final ProfileView initialView;
+
+  const AdminProfileScreen({
+    super.key,
+    this.initialView = ProfileView.profile,
+  });
 
   @override
   ConsumerState<AdminProfileScreen> createState() => _AdminProfileScreenState();
@@ -16,6 +38,8 @@ class AdminProfileScreen extends ConsumerStatefulWidget {
 
 class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  late ProfileView _currentView;
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -29,6 +53,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   bool _initialized = false;
   String? _timeError;
   List<BusinessSchedule>? _localSchedules;
+  Map<int, String> _scheduleErrors = {};
 
   final turkishDays = const [
     'Pazartesi',
@@ -43,6 +68,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _currentView = widget.initialView;
     _nameController = TextEditingController();
     _descriptionController = TextEditingController();
     _phoneController = TextEditingController();
@@ -117,28 +143,30 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   }
 
   bool _validateSchedules() {
+    setState(() {
+      _scheduleErrors = {};
+    });
+
     if (_localSchedules == null || _localSchedules!.length != 7) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Haftalık program tam olarak 7 gün içermelidir.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.error,
         ),
       );
       return false;
     }
 
-    for (final sched in _localSchedules!) {
+    bool isValid = true;
+    for (int i = 0; i < _localSchedules!.length; i++) {
+      final sched = _localSchedules![i];
       if (!sched.isClosed) {
         if (sched.startTime == null || sched.endTime == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '${turkishDays[sched.dayOfWeek]} günü için açılış ve kapanış saatleri zorunludur.',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-          return false;
+          setState(() {
+            _scheduleErrors[i] = 'Açılış ve kapanış saatleri zorunludur.';
+          });
+          isValid = false;
+          continue;
         }
         final start = _parseTimeString(sched.startTime);
         final end = _parseTimeString(sched.endTime);
@@ -146,20 +174,15 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           final startMinutes = start.hour * 60 + start.minute;
           final endMinutes = end.hour * 60 + end.minute;
           if (endMinutes <= startMinutes) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  '${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-            return false;
+            setState(() {
+              _scheduleErrors[i] = '${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.';
+            });
+            isValid = false;
           }
         }
       }
     }
-    return true;
+    return isValid;
   }
 
   String _formatTime(TimeOfDay time) {
@@ -195,32 +218,6 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     return '$hour:$minute:00';
   }
 
-  Future<void> _selectStartTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _startTime ?? const TimeOfDay(hour: 9, minute: 0),
-    );
-    if (picked != null) {
-      setState(() {
-        _startTime = picked;
-        _timeError = null;
-      });
-    }
-  }
-
-  Future<void> _selectEndTime(BuildContext context) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _endTime ?? const TimeOfDay(hour: 18, minute: 0),
-    );
-    if (picked != null) {
-      setState(() {
-        _endTime = picked;
-        _timeError = null;
-      });
-    }
-  }
-
   void _toggleDay(int index, bool isOpen) {
     if (_localSchedules == null) return;
     setState(() {
@@ -237,14 +234,14 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         startTime: isOpen ? (sched.startTime ?? defaultStart) : sched.startTime,
         endTime: isOpen ? (sched.endTime ?? defaultEnd) : sched.endTime,
       );
+      _scheduleErrors.remove(index);
     });
   }
 
   Future<void> _selectDayStartTime(BuildContext context, int index) async {
     final sched = _localSchedules![index];
     final parsed =
-        _parseTimeString(sched.startTime) ??
-        const TimeOfDay(hour: 9, minute: 0);
+        _parseTimeString(sched.startTime) ?? const TimeOfDay(hour: 9, minute: 0);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: parsed,
@@ -260,6 +257,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         _localSchedules![index] = sched.copyWith(
           startTime: _timeOfDayToBackendString(picked),
         );
+        _scheduleErrors.remove(index);
       });
     }
   }
@@ -283,34 +281,15 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
         _localSchedules![index] = sched.copyWith(
           endTime: _timeOfDayToBackendString(picked),
         );
+        _scheduleErrors.remove(index);
       });
     }
   }
 
-  String _mapErrorMessage(Object? error) {
-    if (error is AppException) {
-      return error.message;
-    }
-    return 'Profil bilgileri yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
-  }
-
-  void _submit() {
+  void _submitProfileChanges() {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!_validateTimes()) {
-      setState(() {
-        _timeError = 'Kapanış saati, açılış saatinden sonra olmalıdır.';
-      });
-      return;
-    }
-
-    if (!_validateSchedules()) {
-      return;
-    }
-
-    final startStr = _startTime != null
-        ? _timeOfDayToString(_startTime!)
-        : null;
+    final startStr = _startTime != null ? _timeOfDayToString(_startTime!) : null;
     final endStr = _endTime != null ? _timeOfDayToString(_endTime!) : null;
 
     final schedulesPayload = _localSchedules?.map((sched) {
@@ -339,10 +318,14 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           schedules: schedulesPayload,
           onSuccess: () {
             if (mounted) {
+              setState(() {
+                _initialized = false;
+                _currentView = ProfileView.profile;
+              });
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Profil bilgileri başarıyla güncellendi.'),
-                  backgroundColor: Colors.green,
+                  content: Text('İşletme bilgileri güncellendi.'),
+                  backgroundColor: AppColors.success,
                 ),
               );
             }
@@ -350,11 +333,642 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           onError: (message) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message), backgroundColor: Colors.red),
+                SnackBar(content: Text(message), backgroundColor: AppColors.error),
               );
             }
           },
         );
+  }
+
+  void _submitSchedulesChanges() {
+    if (!_validateSchedules()) return;
+
+    final startStr = _startTime != null ? _timeOfDayToString(_startTime!) : null;
+    final endStr = _endTime != null ? _timeOfDayToString(_endTime!) : null;
+
+    final schedulesPayload = _localSchedules?.map((sched) {
+      if (sched.isClosed) {
+        return BusinessSchedule(
+          dayOfWeek: sched.dayOfWeek,
+          isClosed: true,
+          startTime: null,
+          endTime: null,
+        );
+      } else {
+        return sched;
+      }
+    }).toList();
+
+    ref
+        .read(adminBusinessUpdateControllerProvider.notifier)
+        .updateBusiness(
+          name: _nameController.text.trim(),
+          description: _descriptionController.text.trim(),
+          phone: _phoneController.text.trim(),
+          address: _addressController.text.trim(),
+          workingStartTime: startStr,
+          workingEndTime: endStr,
+          slotDurationMinutes: _slotDuration,
+          schedules: schedulesPayload,
+          onSuccess: () {
+            if (mounted) {
+              setState(() {
+                _initialized = false;
+                _currentView = ProfileView.profile;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Çalışma saatleri kaydedildi.'),
+                  backgroundColor: AppColors.success,
+                ),
+              );
+            }
+          },
+          onError: (message) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(message), backgroundColor: AppColors.error),
+              );
+            }
+          },
+        );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Çıkış Yap'),
+        content: const Text('Çıkış yapmak istediğinize emin misiniz?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() {
+        _currentView = ProfileView.profile;
+      });
+      await ref.read(authControllerProvider.notifier).logout();
+    }
+  }
+
+  String _mapErrorMessage(Object? error) {
+    if (error is AppException) {
+      return error.message;
+    }
+    return 'Profil bilgileri sunucudan yüklenemedi.';
+  }
+
+  Widget _buildReadOnlyProfile(Business business) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 1. Top Business Header Info
+        AppCard(
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppColors.primaryLight,
+                    child: const Icon(
+                      Icons.storefront,
+                      size: 28,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          business.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (business.description != null &&
+                            business.description!.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            business.description!,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textSecondary,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: AppSpacing.xl),
+              Row(
+                children: [
+                  const Icon(Icons.location_on_outlined,
+                      size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      business.address ?? 'Adres belirtilmemiş',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.phone_outlined,
+                      size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      business.phone ?? 'Telefon belirtilmemiş',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.timer_outlined,
+                      size: 16, color: AppColors.textSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Randevu Süresi: ${business.slotDurationMinutes} dakika',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Profili Düzenle',
+                  isOutlined: true,
+                  onPressed: () {
+                    setState(() {
+                      _currentView = ProfileView.editProfile;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // 2. Schedules Section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Çalışma Saatleri',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _currentView = ProfileView.editSchedules;
+                });
+              },
+              child: const Text('Saatleri Düzenle'),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.s),
+        AppCard(
+          child: Table(
+            columnWidths: const {
+              0: IntrinsicColumnWidth(),
+              1: FlexColumnWidth(),
+            },
+            children: List.generate(7, (index) {
+              final sortedSched = business.schedules.length == 7
+                  ? (List<BusinessSchedule>.from(business.schedules)
+                    ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek)))
+                  : List.generate(7, (index) {
+                      return BusinessSchedule(
+                        dayOfWeek: index,
+                        startTime: business.workingStartTime ?? '09:00:00',
+                        endTime: business.workingEndTime ?? '18:00:00',
+                        isClosed: false,
+                      );
+                    });
+
+              final sched = sortedSched[index];
+              final dayName = turkishDays[index];
+
+              String scheduleText = 'Çalışma programı belirtilmemiş';
+              if (sched.isClosed) {
+                scheduleText = 'Kapalı';
+              } else if (sched.startTime != null && sched.endTime != null) {
+                scheduleText =
+                    '${_formatTimeString(sched.startTime!)} - ${_formatTimeString(sched.endTime!)}';
+              }
+
+              return TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Text(
+                      dayName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: Text(
+                      scheduleText,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: sched.isClosed ? FontWeight.normal : FontWeight.bold,
+                        color: sched.isClosed ? AppColors.textSecondary : AppColors.primary,
+                      ),
+                      textAlign: TextAlign.end,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+
+        // 3. Google Calendar Card Section
+        const Text(
+          'Google Takvim Entegrasyonu',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _buildGoogleCalendarSection(),
+        const SizedBox(height: AppSpacing.xl),
+
+        // 4. Oturum / Logout Card
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Hesap Ayarları',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Yönetici Oturumu',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const Divider(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: AppButton(
+                  label: 'Çıkış Yap',
+                  isOutlined: true,
+                  onPressed: _confirmLogout,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+      ],
+    );
+  }
+
+  Widget _buildEditProfileForm(bool isSaving) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextField(
+                  label: 'İşletme Adı',
+                  hint: 'İşletmenizin adını girin',
+                  controller: _nameController,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'İşletme adı boş olamaz.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                AppTextField(
+                  label: 'Açıklama',
+                  hint: 'Açıklama yazısı (max 500)',
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  validator: (value) {
+                    if (value != null && value.length > 500) {
+                      return 'Açıklama en fazla 500 karakter olabilir.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                AppTextField(
+                  label: 'Telefon',
+                  hint: 'Telefon numaranızı girin',
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Telefon numarası boş olamaz.';
+                    }
+                    final phoneRegex = RegExp(r'^\+?[0-9\s\-]{10,20}$');
+                    if (!phoneRegex.hasMatch(value.trim())) {
+                      return 'Geçerli bir telefon numarası giriniz.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                AppTextField(
+                  label: 'Adres',
+                  hint: 'Adres bilgilerini girin',
+                  controller: _addressController,
+                  maxLines: 2,
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Adres alanı boş olamaz.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                DropdownButtonFormField<int>(
+                  value: _slotDuration,
+                  decoration: const InputDecoration(
+                    labelText: 'Randevu Süresi (Dakika)',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.timer),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 30, child: Text('30 Dakika')),
+                    DropdownMenuItem(value: 45, child: Text('45 Dakika')),
+                    DropdownMenuItem(value: 60, child: Text('60 Dakika')),
+                  ],
+                  onChanged: isSaving
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _slotDuration = value;
+                          });
+                        },
+                  validator: (value) {
+                    if (value == null) {
+                      return 'Randevu süresi seçimi zorunludur.';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+
+          AppButton(
+            label: isSaving ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet',
+            isLoading: isSaving,
+            onPressed: isSaving ? null : _submitProfileChanges,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEditSchedulesForm(bool isSaving) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Haftalık Çalışma Programı',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.info_outline, color: AppColors.primary, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Müşteriler yalnızca açık olduğunuz gün ve saatler için randevu alabilir.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textPrimary,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+
+        if (_localSchedules != null)
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 7,
+            itemBuilder: (context, index) {
+              final sched = _localSchedules![index];
+              final isOpen = !sched.isClosed;
+              final dayName = turkishDays[sched.dayOfWeek];
+              final errorMsg = _scheduleErrors[index];
+
+              return AppCard(
+                margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          dayName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Text(
+                              isOpen ? 'Açık' : 'Kapalı',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: isOpen ? AppColors.success : Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: isOpen,
+                              onChanged: isSaving
+                                  ? null
+                                  : (val) => _toggleDay(index, val),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    if (isOpen) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: isSaving
+                                  ? null
+                                  : () => _selectDayStartTime(context, index),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Açılış Saati',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.access_time, size: 16),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                child: Text(
+                                  sched.startTime != null
+                                      ? _formatTimeString(sched.startTime!)
+                                      : '--:--',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: InkWell(
+                              onTap: isSaving
+                                  ? null
+                                  : () => _selectDayEndTime(context, index),
+                              child: InputDecorator(
+                                decoration: const InputDecoration(
+                                  labelText: 'Kapanış Saati',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon:
+                                      Icon(Icons.access_time_filled, size: 16),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 8),
+                                ),
+                                child: Text(
+                                  sched.endTime != null
+                                      ? _formatTimeString(sched.endTime!)
+                                      : '--:--',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (errorMsg != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        errorMsg,
+                        style: const TextStyle(
+                          color: AppColors.error,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+        const SizedBox(height: AppSpacing.xl),
+
+        AppButton(
+          label: isSaving ? 'Kaydediliyor...' : 'Çalışma Saatlerini Kaydet',
+          isLoading: isSaving,
+          onPressed: isSaving ? null : _submitSchedulesChanges,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
   }
 
   @override
@@ -363,429 +977,86 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     final updateState = ref.watch(adminBusinessUpdateControllerProvider);
     final isSaving = updateState.isLoading;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profil Yönetimi')),
-      body: SafeArea(
-        child: businessState.when(
-          data: (business) {
-            _initializeValues(business);
+    // Calculate AppBar headers dynamically
+    String appBarTitle = 'İşletme Profili';
+    bool showBackButton = false;
 
-            return Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'İşletme Bilgileri',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+    if (_currentView == ProfileView.editProfile) {
+      appBarTitle = 'Profili Düzenle';
+      showBackButton = true;
+    } else if (_currentView == ProfileView.editSchedules) {
+      appBarTitle = 'Çalışma Saatleri';
+      showBackButton = true;
+    }
 
-                    // Business Name
-                    TextFormField(
-                      controller: _nameController,
-                      enabled: !isSaving,
-                      decoration: const InputDecoration(
-                        labelText: 'İşletme Adı',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.store),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'İşletme adı boş olamaz.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Description
-                    TextFormField(
-                      controller: _descriptionController,
-                      enabled: !isSaving,
-                      maxLines: 3,
-                      maxLength: 500,
-                      decoration: const InputDecoration(
-                        labelText: 'Açıklama',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.description_outlined),
-                      ),
-                      validator: (value) {
-                        if (value != null && value.length > 500) {
-                          return 'Açıklama en fazla 500 karakter olabilir.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Phone
-                    TextFormField(
-                      controller: _phoneController,
-                      enabled: !isSaving,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Telefon',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.phone),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Telefon numarası boş olamaz.';
-                        }
-                        final phoneRegex = RegExp(r'^\+?[0-9\s\-]{10,20}$');
-                        if (!phoneRegex.hasMatch(value.trim())) {
-                          return 'Geçerli bir telefon numarası giriniz.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Address
-                    TextFormField(
-                      controller: _addressController,
-                      enabled: !isSaving,
-                      maxLines: 2,
-                      decoration: const InputDecoration(
-                        labelText: 'Adres',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.location_on),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Adres boş olamaz.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Varsayılan Çalışma Saatleri (Fallback)',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Working Hours Picker
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: isSaving
-                                ? null
-                                : () => _selectStartTime(context),
-                            borderRadius: BorderRadius.circular(8),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Açılış Saati',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.access_time),
-                              ),
-                              child: Text(
-                                _startTime != null
-                                    ? _formatTime(_startTime!)
-                                    : '--:--',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: InkWell(
-                            onTap: isSaving
-                                ? null
-                                : () => _selectEndTime(context),
-                            borderRadius: BorderRadius.circular(8),
-                            child: InputDecorator(
-                              decoration: const InputDecoration(
-                                labelText: 'Kapanış Saati',
-                                border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.access_time_filled),
-                              ),
-                              child: Text(
-                                _endTime != null
-                                    ? _formatTime(_endTime!)
-                                    : '--:--',
-                                style: Theme.of(context).textTheme.bodyLarge,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_timeError != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        _timeError!,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-
-                    // Slot Duration Dropdown
-                    DropdownButtonFormField<int>(
-                      initialValue: _slotDuration,
-                      decoration: const InputDecoration(
-                        labelText: 'Randevu Süresi (Dakika)',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.timer),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: 30, child: Text('30 Dakika')),
-                        DropdownMenuItem(value: 45, child: Text('45 Dakika')),
-                        DropdownMenuItem(value: 60, child: Text('60 Dakika')),
-                      ],
-                      onChanged: isSaving
-                          ? null
-                          : (value) {
-                              setState(() {
-                                _slotDuration = value;
-                              });
-                            },
-                      validator: (value) {
-                        if (value == null) {
-                          return 'Randevu süresi seçimi zorunludur.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-
-                    Text(
-                      'Haftalık Çalışma Programı',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    if (_localSchedules != null)
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: 7,
-                        itemBuilder: (context, index) {
-                          final sched = _localSchedules![index];
-                          final isOpen = !sched.isClosed;
-                          final dayName = turkishDays[sched.dayOfWeek];
-
-                          return Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          dayName,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleMedium
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                      ),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            isOpen ? 'Açık' : 'Kapalı',
-                                            style: TextStyle(
-                                              color: isOpen
-                                                  ? Colors.green
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Switch(
-                                            value: isOpen,
-                                            onChanged: isSaving
-                                                ? null
-                                                : (val) =>
-                                                      _toggleDay(index, val),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: InkWell(
-                                          onTap: (!isOpen || isSaving)
-                                              ? null
-                                              : () => _selectDayStartTime(
-                                                  context,
-                                                  index,
-                                                ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child: Opacity(
-                                            opacity: isOpen ? 1.0 : 0.5,
-                                            child: InputDecorator(
-                                              decoration: const InputDecoration(
-                                                labelText: 'Açılış Saati',
-                                                border: OutlineInputBorder(),
-                                                prefixIcon: Icon(
-                                                  Icons.access_time,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                sched.startTime != null
-                                                    ? _formatTimeString(
-                                                        sched.startTime!,
-                                                      )
-                                                    : '--:--',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: InkWell(
-                                          onTap: (!isOpen || isSaving)
-                                              ? null
-                                              : () => _selectDayEndTime(
-                                                  context,
-                                                  index,
-                                                ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child: Opacity(
-                                            opacity: isOpen ? 1.0 : 0.5,
-                                            child: InputDecorator(
-                                              decoration: const InputDecoration(
-                                                labelText: 'Kapanış Saati',
-                                                border: OutlineInputBorder(),
-                                                prefixIcon: Icon(
-                                                  Icons.access_time_filled,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                sched.endTime != null
-                                                    ? _formatTimeString(
-                                                        sched.endTime!,
-                                                      )
-                                                    : '--:--',
-                                                style: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyLarge,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
+    return PopScope(
+      canPop: _currentView == ProfileView.profile,
+      onPopInvoked: (didPop) {
+        if (didPop) return;
+        setState(() {
+          _currentView = ProfileView.profile;
+        });
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          title: Text(
+            appBarTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          automaticallyImplyLeading: false,
+          leading: showBackButton
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: isSaving
+                      ? null
+                      : () {
+                          setState(() {
+                            _currentView = ProfileView.profile;
+                          });
                         },
-                      ),
+                )
+              : null,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
+          elevation: 0,
+        ),
+        body: SafeArea(
+          child: businessState.when(
+            data: (business) {
+              _initializeValues(business);
 
-                    const SizedBox(height: 24),
-                    Text(
-                      'Google Takvim Entegrasyonu',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildGoogleCalendarSection(),
-
-                    const SizedBox(height: 32),
-
-                    // Save Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: FilledButton(
-                        onPressed: isSaving ? null : _submit,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: isSaving
-                            ? const SizedBox(
-                                height: 24,
-                                width: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Kaydet',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                      ),
-                    ),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  children: [
+                    if (_currentView == ProfileView.profile)
+                      _buildReadOnlyProfile(business)
+                    else if (_currentView == ProfileView.editProfile)
+                      _buildEditProfileForm(isSaving)
+                    else if (_currentView == ProfileView.editSchedules)
+                      _buildEditSchedulesForm(isSaving),
                   ],
                 ),
-              ),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    color: Theme.of(context).colorScheme.error,
-                    size: 64,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _mapErrorMessage(error),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: () {
-                      ref.invalidate(adminBusinessProvider);
-                    },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Tekrar Dene'),
-                  ),
-                ],
-              ),
+              );
+            },
+            loading: () => const Center(
+              child: AppLoadingIndicator(message: 'Profil yükleniyor...'),
+            ),
+            error: (error, _) => AppEmptyState(
+              title: 'Profil Yüklenemedi',
+              message: _mapErrorMessage(error),
+              icon: Icons.error_outline,
+              actionLabel: 'Tekrar Dene',
+              onAction: () {
+                ref.invalidate(adminBusinessProvider);
+              },
             ),
           ),
         ),
+        bottomNavigationBar: _currentView == ProfileView.profile
+            ? const AdminBottomNavigation(currentIndex: 2)
+            : null,
       ),
     );
   }
@@ -798,97 +1069,108 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     return statusAsync.when(
       data: (status) {
         if (status.connected) {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.check_circle, color: Colors.green),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Google Takvim Bağlı',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.green,
-                              fontWeight: FontWeight.bold,
-                            ),
+          return AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: AppColors.success),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Google Takvim Bağlı',
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (status.googleAccountEmail != null &&
+                    status.googleAccountEmail!.isNotEmpty) ...[
                   Text(
-                    'Bağlı Hesap: ${status.googleAccountEmail ?? ""}',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: isLoading
-                          ? null
-                          : _showDisconnectConfirmationDialog,
-                      icon: const Icon(Icons.link_off),
-                      label: const Text('Bağlantıyı Kaldır'),
+                    'Bağlı Hesap: ${status.googleAccountEmail}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
                     ),
                   ),
+                  const SizedBox(height: 4),
                 ],
-              ),
+                const Text(
+                  'Onaylanan randevular otomatik olarak takviminize eklenir.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const Divider(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    label: 'Bağlantıyı Kaldır',
+                    isOutlined: true,
+                    isLoading: isLoading,
+                    onPressed: isLoading ? null : _showDisconnectConfirmationDialog,
+                  ),
+                ),
+              ],
             ),
           );
         } else {
-          return Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Randevularınızı Google Takviminiz ile senkronize etmek için hesabınızı bağlayın.',
-                    style: Theme.of(context).textTheme.bodyMedium,
+          return AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Randevularınızı Google Takviminiz ile senkronize etmek için hesabınızı bağlayın.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: isLoading ? null : _connectGoogleCalendar,
-                      icon: const Icon(Icons.link),
-                      label: const Text('Google Takvim\'i Bağla'),
-                    ),
+                ),
+                const Divider(height: AppSpacing.lg),
+                SizedBox(
+                  width: double.infinity,
+                  child: AppButton(
+                    label: 'Google Takvim\'i Bağla',
+                    isLoading: isLoading,
+                    onPressed: isLoading ? null : _connectGoogleCalendar,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           );
         }
       },
-      loading: () => const Card(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
+      loading: () => const AppCard(
+        child: SizedBox(
+          height: 100,
           child: Center(child: CircularProgressIndicator()),
         ),
       ),
-      error: (error, _) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Bağlantı durumu alınamadı.',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
+      error: (error, _) => AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Bağlantı durumu alınamadı.',
+              style: TextStyle(color: AppColors.error, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                label: 'Tekrar Dene',
+                isOutlined: true,
                 onPressed: () {
                   ref.invalidate(googleCalendarStatusProvider);
                 },
-                child: const Text('Tekrar Dene'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -900,7 +1182,10 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       onError: (msg) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Bağlantı kurulamadı: $msg'),
+              backgroundColor: AppColors.error,
+            ),
           );
         }
       },
@@ -919,7 +1204,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Bağlantı adresi açılamadı: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
         }
@@ -933,8 +1218,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Google Takvim Bağlantısını Kaldır'),
         content: const Text(
-          'Google Takvim bağlantısını kaldırmak istediğinize emin misiniz? '
-          'Randevularınız artık Google Takviminize senkronize edilmeyecektir.',
+          'Yeni onaylanan randevular artık Google Takvim’e eklenmeyecektir.',
         ),
         actions: [
           TextButton(
@@ -943,6 +1227,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Bağlantıyı Kaldır'),
           ),
         ],
@@ -958,15 +1243,16 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text('Google Takvim bağlantısı kaldırıldı.'),
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppColors.success,
                   ),
                 );
+                ref.invalidate(googleCalendarStatusProvider);
               }
             },
             onError: (msg) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                  SnackBar(content: Text(msg), backgroundColor: AppColors.error),
                 );
               }
             },

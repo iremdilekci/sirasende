@@ -4,16 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_profile_screen.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
-import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
-import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
-import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
-
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connection_status.dart';
 import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connect_result.dart';
+import 'package:sirasende_mobile/features/business/domain/repositories/business_repository.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/features/business/domain/repositories/google_calendar_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
-
+import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
 class FakeBusinessRepository implements BusinessRepository {
   Business? businessResult;
   Object? fetchError;
@@ -102,15 +100,15 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
     statusCalls++;
     if (error != null) throw error!;
-    return statusResult ??
-        const GoogleCalendarConnectionStatus(connected: false);
+    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
   }
 
   @override
   Future<GoogleCalendarConnectResult> getConnectUrl() async {
     connectCalls++;
     if (error != null) throw error!;
-    return connectResult!;
+    return connectResult ??
+        const GoogleCalendarConnectResult(authorizationUrl: 'https://mock-auth.url');
   }
 
   @override
@@ -144,7 +142,7 @@ void main() {
       fakeGoogleCalendarRepo = FakeGoogleCalendarRepository();
     });
 
-    Widget createWidgetUnderTest() {
+    Widget createWidgetUnderTest({ProfileView initialView = ProfileView.editProfile}) {
       return ProviderScope(
         overrides: [
           businessRepositoryProvider.overrideWithValue(fakeRepo),
@@ -152,57 +150,41 @@ void main() {
             fakeGoogleCalendarRepo,
           ),
         ],
-        child: const MaterialApp(home: AdminProfileScreen()),
+        child: MaterialApp(home: AdminProfileScreen(initialView: initialView)),
       );
     }
 
     testWidgets('should display business profile details when loaded', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.profile));
       await tester.pump(); // Start fetching
       await tester.pump(); // Render data state
 
-      expect(find.text('Profil Yönetimi'), findsOneWidget);
-      expect(
-        find.widgetWithText(TextFormField, 'Ahmet Barber Shop'),
-        findsOneWidget,
-      );
-      expect(
-        find.widgetWithText(TextFormField, 'The best haircut in town'),
-        findsOneWidget,
-      );
-      expect(
-        find.widgetWithText(TextFormField, '+905554443322'),
-        findsOneWidget,
-      );
-      expect(
-        find.widgetWithText(TextFormField, 'Kadikoy, Istanbul'),
-        findsOneWidget,
-      );
+      expect(find.text('İşletme Profili'), findsOneWidget);
+      expect(find.text('Ahmet Barber Shop'), findsOneWidget);
+      expect(find.text('The best haircut in town'), findsOneWidget);
+      expect(find.text('Kadikoy, Istanbul'), findsOneWidget);
+      expect(find.text('+905554443322'), findsOneWidget);
 
-      // Verify opening and closing hours formatting
-      expect(find.text('09:00'), findsAtLeastNWidgets(1));
-      expect(find.text('18:00'), findsAtLeastNWidgets(1));
-
-      // Verify slot duration choice
-      expect(find.text('30 Dakika'), findsOneWidget);
+      // Verify opening and closing hours formatting in summary list
+      expect(find.text('09:00 - 18:00'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('should show validation error when business name is empty', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
       await tester.pump();
       await tester.pump();
 
       // Enter empty name
-      final nameField = find.widgetWithText(TextFormField, 'Ahmet Barber Shop');
+      final nameField = find.widgetWithText(TextField, 'İşletme Adı');
       await tester.enterText(nameField, '  ');
 
       // Tap Save after ensuring visible
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Değişiklikleri Kaydet'));
+      await tester.tap(find.text('Değişiklikleri Kaydet'));
       await tester.pump(); // trigger validation layout
 
       expect(find.text('İşletme adı boş olamaz.'), findsOneWidget);
@@ -212,17 +194,17 @@ void main() {
     testWidgets('should show validation error when phone number is invalid', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
       await tester.pump();
       await tester.pump();
 
       // Enter invalid phone
-      final phoneField = find.widgetWithText(TextFormField, '+905554443322');
+      final phoneField = find.widgetWithText(TextField, 'Telefon');
       await tester.enterText(phoneField, 'invalid-phone');
 
       // Tap Save after ensuring visible
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Değişiklikleri Kaydet'));
+      await tester.tap(find.text('Değişiklikleri Kaydet'));
       await tester.pump();
 
       expect(
@@ -235,23 +217,20 @@ void main() {
     testWidgets('should show green snackbar on successful profile update', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
       await tester.pump();
       await tester.pump();
 
       // Modify fields
-      final nameField = find.widgetWithText(TextFormField, 'Ahmet Barber Shop');
+      final nameField = find.widgetWithText(TextField, 'İşletme Adı');
       await tester.enterText(nameField, 'Yeni Ahmet Berber');
 
-      final descField = find.widgetWithText(
-        TextFormField,
-        'The best haircut in town',
-      );
+      final descField = find.widgetWithText(TextField, 'Açıklama');
       await tester.enterText(descField, 'Yeni aciklama');
 
       // Tap Save after ensuring visible
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Değişiklikleri Kaydet'));
+      await tester.tap(find.text('Değişiklikleri Kaydet'));
       await tester.pump(); // start async notification
 
       // Re-render async callback completions
@@ -263,7 +242,7 @@ void main() {
 
       // Check success snackbar
       expect(
-        find.text('Profil bilgileri başarıyla güncellendi.'),
+        find.text('İşletme bilgileri güncellendi.'),
         findsOneWidget,
       );
     });
@@ -274,13 +253,13 @@ void main() {
         code: 'PHONE_TAKEN',
       );
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
       await tester.pump();
       await tester.pump();
 
       // Tap Save after ensuring visible
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Değişiklikleri Kaydet'));
+      await tester.tap(find.text('Değişiklikleri Kaydet'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -299,7 +278,7 @@ void main() {
           code: 'LOAD_ERROR',
         );
 
-        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.profile));
         await tester.pump();
         await tester.pumpAndSettle(); // Settle all async / future states
 
@@ -315,17 +294,14 @@ void main() {
         await tester.pump();
         await tester.pumpAndSettle();
 
-        expect(
-          find.widgetWithText(TextFormField, 'Ahmet Barber Shop'),
-          findsOneWidget,
-        );
+        expect(find.text('Ahmet Barber Shop'), findsOneWidget);
       },
     );
 
     testWidgets('should display 7 days in correct order initially', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 
@@ -387,7 +363,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 
@@ -400,7 +376,7 @@ void main() {
     });
 
     testWidgets('closed day switch disables hours selection', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 
@@ -466,12 +442,12 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Çalışma Saatlerini Kaydet'));
+      await tester.tap(find.text('Çalışma Saatlerini Kaydet'));
       await tester.pump();
 
       expect(
@@ -530,7 +506,7 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 
@@ -540,8 +516,8 @@ void main() {
       await tester.tap(switchFinder);
       await tester.pump();
 
-      await tester.ensureVisible(find.text('Kaydet'));
-      await tester.tap(find.text('Kaydet'));
+      await tester.ensureVisible(find.text('Çalışma Saatlerini Kaydet'));
+      await tester.tap(find.text('Çalışma Saatlerini Kaydet'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -557,7 +533,7 @@ void main() {
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1.0;
 
-      await tester.pumpWidget(createWidgetUnderTest());
+      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
       await tester.pump();
       await tester.pump();
 

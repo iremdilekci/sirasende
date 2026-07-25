@@ -223,6 +223,8 @@ class GoogleCalendarSyncController extends AsyncNotifier<void> {
       await repository.syncGoogleCalendar(id: id);
     });
 
+    if (!ref.mounted) return;
+
     if (result.hasError) {
       final error = result.error;
       final message = error is AppException

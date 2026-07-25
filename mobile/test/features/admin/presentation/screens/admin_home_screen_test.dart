@@ -168,10 +168,10 @@ void main() {
         // Verify counts
         expect(find.text('Toplam Randevu'), findsOneWidget);
         expect(find.text('4'), findsWidgets); // Total + 1 of the status cards
-        expect(find.text('Beklemede'), findsOneWidget);
-        expect(find.text('Onaylandı'), findsOneWidget);
-        expect(find.text('Tamamlandı'), findsOneWidget);
-        expect(find.text('İptal Edildi'), findsOneWidget);
+        expect(find.text('Beklemede'), findsWidgets);
+        expect(find.text('Onaylandı'), findsWidgets);
+        expect(find.text('Tamamlandı'), findsWidgets);
+        expect(find.text('İptal Edildi'), findsWidgets);
         expect(find.text('1'), findsWidgets);
 
         // Verify redirect button

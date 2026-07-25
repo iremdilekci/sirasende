@@ -463,6 +463,12 @@ void main() {
       await tester.pump();
       await tester.pump();
 
+      // Tap on 'Saatleri Düzenle' to open schedules view
+      final editBtn = find.text('Saatleri Düzenle');
+      await tester.ensureVisible(editBtn);
+      await tester.tap(editBtn);
+      await tester.pumpAndSettle();
+
       // Find switch for Pazartesi and toggle it off
       final switchFinder = find.byType(Switch).first;
       await tester.ensureVisible(switchFinder);

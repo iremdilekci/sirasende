@@ -3,24 +3,49 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/router/route_names.dart';
+import 'package:sirasende_mobile/core/theme/app_colors.dart';
+import 'package:sirasende_mobile/core/theme/app_spacing.dart';
+import 'package:sirasende_mobile/core/theme/app_radius.dart';
+import 'package:sirasende_mobile/core/theme/app_shadows.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
+import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
+import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
+import 'package:sirasende_mobile/shared/widgets/app_card.dart';
+import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
+import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
+import '../widgets/admin_bottom_navigation.dart';
 
 class AdminHomeScreen extends ConsumerWidget {
   const AdminHomeScreen({super.key});
 
-  Color _getStatusColor(String status, BuildContext context) {
+  Color _getStatusColor(String status) {
     switch (status) {
       case 'pending':
-        return Colors.orange.shade700;
+        return AppColors.warning;
       case 'confirmed':
-        return Colors.blue.shade700;
+        return AppColors.primary;
       case 'cancelled':
-        return Colors.red.shade700;
+        return AppColors.error;
       case 'completed':
-        return Colors.green.shade700;
+        return AppColors.success;
       default:
-        return Theme.of(context).colorScheme.onSurfaceVariant;
+        return AppColors.textSecondary;
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'pending':
+        return 'Beklemede';
+      case 'confirmed':
+        return 'Onaylandı';
+      case 'cancelled':
+        return 'İptal Edildi';
+      case 'completed':
+        return 'Tamamlandı';
+      default:
+        return status;
     }
   }
 
@@ -31,107 +56,212 @@ class AdminHomeScreen extends ConsumerWidget {
     return 'Randevular yüklenirken bir sorun oluştu. Lütfen tekrar deneyin.';
   }
 
-  Widget _buildTotalCard(BuildContext context, {required int count}) {
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: primaryColor.withAlpha(50)),
-      ),
-      color: primaryColor.withAlpha(15),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: primaryColor.withAlpha(30),
-              child: Icon(Icons.calendar_month, color: primaryColor, size: 20),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Toplam Randevu',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Bugün için planlanan toplam',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: primaryColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard(
-    BuildContext context, {
+  Widget _buildSummaryCard({
+    required BuildContext context,
     required String title,
     required int count,
     required IconData icon,
     required Color color,
+    required double width,
   }) {
-    return Card(
-      margin: EdgeInsets.zero,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withAlpha(50)),
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
-      color: color.withAlpha(15),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(width: AppSpacing.s),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalCard({
+    required BuildContext context,
+    required int count,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.primary.withOpacity(0.15),
+            child: const Icon(
+              Icons.calendar_month,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: color, size: 18),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                const Text(
+                  'Toplam Randevu',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Toplam planlanan randevu sayısı',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
                   ),
                 ),
               ],
             ),
-            Text(
-              '$count',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            '$count',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 28,
+              color: AppColors.primary,
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingItem({
+    required BuildContext context,
+    required Appointment appointment,
+  }) {
+    final statusColor = _getStatusColor(appointment.status);
+    final statusLabel = _getStatusLabel(appointment.status);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+        boxShadow: AppShadows.cardShadow,
+      ),
+      child: Row(
+        children: [
+          // Time
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                appointment.startTime.substring(0, 5),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                appointment.endTime.substring(0, 5),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          // Divider
+          Container(
+            height: 36,
+            width: 1,
+            color: AppColors.border,
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          // Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  appointment.customerName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: statusColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      statusLabel,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: statusColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          const Icon(
+            Icons.chevron_right,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
+        ],
       ),
     );
   }
@@ -142,72 +272,88 @@ class AdminHomeScreen extends ConsumerWidget {
     final user = authState.value;
 
     final todayStr = ref.watch(todayDateStringProvider);
-    final summaryAsync = ref.watch(adminDashboardSummaryProvider(todayStr));
+    final businessAsync = ref.watch(adminBusinessProvider);
+    final appointmentsAsync = ref.watch(
+      adminAppointmentsProvider(AdminAppointmentsParams(date: todayStr)),
+    );
+
+    // Derive business name or fall back to user's username
+    final businessName = businessAsync.value?.name ?? user?.username ?? '';
+
+    // Calculate layout spacing
+    final screenWidth = MediaQuery.of(context).size.width;
+    final cardWidth = (screenWidth - 32 - 12) / 2;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Esnaf Paneli'),
-        automaticallyImplyLeading: false, // Prevent physical back navigation
-      ),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () => ref.refresh(
-            adminAppointmentsProvider(
-              AdminAppointmentsParams(date: todayStr),
-            ).future,
-          ),
+          onRefresh: () async {
+            ref.invalidate(adminBusinessProvider);
+            ref.invalidate(adminAppointmentsProvider);
+          },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Welcome card
-                Card(
-                  margin: EdgeInsets.zero,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withAlpha(128),
+                // Top Hero Header Section
+                Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.primary, Color(0xFF3B2FBF)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(20.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.xl,
+                    ),
                     child: Row(
                       children: [
                         CircleAvatar(
-                          radius: 28,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primaryContainer,
-                          child: Icon(
-                            Icons.person,
-                            size: 28,
-                            color: Theme.of(context).colorScheme.primary,
+                          radius: 26,
+                          backgroundColor: Colors.white.withOpacity(0.2),
+                          child: const Icon(
+                            Icons.storefront,
+                            color: Colors.white,
+                            size: 26,
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
+                                'Esnaf Paneli',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
                                 'Hoş geldiniz',
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                user?.username ?? '',
-                                style: Theme.of(context).textTheme.titleLarge
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                                businessName,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -216,257 +362,339 @@ class AdminHomeScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
 
-                // Today's summary header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Bugünün Özeti',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      todayStr,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: AppSpacing.xl),
 
-                // Summary Data Box
-                summaryAsync.when(
-                  data: (summary) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTotalCard(context, count: summary.total),
-                        const SizedBox(height: 12),
-                        GridView.count(
-                          crossAxisCount: 2,
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 1.4,
-                          children: [
-                            _buildStatusCard(
-                              context,
-                              title: 'Beklemede',
-                              count: summary.pending,
-                              icon: Icons.pending_actions,
-                              color: _getStatusColor('pending', context),
+                      // Today's summary header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Bugünün Özeti',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            _buildStatusCard(
-                              context,
-                              title: 'Onaylandı',
-                              count: summary.confirmed,
-                              icon: Icons.check_circle_outline,
-                              color: _getStatusColor('confirmed', context),
-                            ),
-                            _buildStatusCard(
-                              context,
-                              title: 'Tamamlandı',
-                              count: summary.completed,
-                              icon: Icons.task_alt,
-                              color: _getStatusColor('completed', context),
-                            ),
-                            _buildStatusCard(
-                              context,
-                              title: 'İptal Edildi',
-                              count: summary.cancelled,
-                              icon: Icons.cancel_outlined,
-                              color: _getStatusColor('cancelled', context),
-                            ),
-                          ],
-                        ),
-                        if (summary.total == 0) ...[
-                          const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest
-                                  .withAlpha(128),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 18,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Bugün için henüz randevu bulunmuyor.',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              todayStr,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
-                      ],
-                    );
-                  },
-                  loading: () => const SizedBox(
-                    height: 200,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  error: (error, _) => Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16.0),
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.errorContainer.withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.error.withAlpha(50),
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: Theme.of(context).colorScheme.error,
-                          size: 36,
+                      const SizedBox(height: AppSpacing.md),
+
+                      // Summary & Statistics Cards block
+                      appointmentsAsync.when(
+                        data: (appointments) {
+                          final summary = DashboardSummary.fromAppointments(appointments);
+
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              _buildTotalCard(context: context, count: summary.total),
+                              _buildSummaryCard(
+                                context: context,
+                                title: 'Beklemede',
+                                count: summary.pending,
+                                icon: Icons.pending_actions,
+                                color: _getStatusColor('pending'),
+                                width: cardWidth,
+                              ),
+                              _buildSummaryCard(
+                                context: context,
+                                title: 'Onaylandı',
+                                count: summary.confirmed,
+                                icon: Icons.check_circle_outline,
+                                color: _getStatusColor('confirmed'),
+                                width: cardWidth,
+                              ),
+                              _buildSummaryCard(
+                                context: context,
+                                title: 'Tamamlandı',
+                                count: summary.completed,
+                                icon: Icons.task_alt,
+                                color: _getStatusColor('completed'),
+                                width: cardWidth,
+                              ),
+                              _buildSummaryCard(
+                                context: context,
+                                title: 'İptal Edildi',
+                                count: summary.cancelled,
+                                icon: Icons.cancel_outlined,
+                                color: _getStatusColor('cancelled'),
+                                width: cardWidth,
+                              ),
+                            ],
+                          );
+                        },
+                        loading: () => const Center(
+                          child: CircularProgressIndicator(),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _mapErrorMessage(error),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          onPressed: () {
+                        error: (error, _) => AppEmptyState(
+                          title: 'Özet Yüklenemedi',
+                          message: _mapErrorMessage(error),
+                          icon: Icons.error_outline,
+                          actionLabel: 'Tekrar Dene',
+                          onAction: () {
                             ref.invalidate(adminAppointmentsProvider);
                           },
-                          icon: const Icon(Icons.refresh, size: 16),
-                          label: const Text(
-                            'Tekrar Dene',
-                            style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Upcoming appointments section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Yaklaşan Randevular',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          style: FilledButton.styleFrom(
-                            minimumSize: Size.zero,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: TextButton(
+                              onPressed: () {
+                                context.goNamed(RouteNames.adminAppointments);
+                              },
+                              child: const Text(
+                                'Randevuları Görüntüle',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.s),
+
+                      appointmentsAsync.when(
+                        data: (appointments) {
+                          final upcoming = appointments
+                              .where((app) =>
+                                  app.status == 'confirmed' ||
+                                  app.status == 'pending')
+                              .toList();
+                          upcoming.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+                          if (upcoming.isEmpty) {
+                            return const AppEmptyState(
+                              title: 'Yaklaşan Randevu Yok',
+                              message: 'Bugün için henüz randevu bulunmuyor.',
+                              icon: Icons.calendar_today_outlined,
+                            );
+                          }
+
+                          return Column(
+                            children: upcoming
+                                .take(3)
+                                .map((app) => _buildUpcomingItem(
+                                      context: context,
+                                      appointment: app,
+                                    ))
+                                .toList(),
+                          );
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24.0),
+                          child: Center(
+                            child: Text(
+                              'Yaklaşan randevular yükleniyor...',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
+                        error: (error, _) => Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(color: AppColors.error.withOpacity(0.15)),
+                          ),
+                          child: Text(
+                            'Randevular yüklenemedi: ${_mapErrorMessage(error)}',
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
 
-                // Actions section
-                Text(
-                  'İşlemler',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.xl),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      context.goNamed(RouteNames.adminAppointments);
-                    },
-                    icon: const Icon(Icons.calendar_month_outlined),
-                    label: const Text(
-                      'Randevuları Görüntüle',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      // Actions Section
+                      const Text(
+                        'Hızlı İşlemler',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                    ),
-                    style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      context.goNamed(RouteNames.adminProfile);
-                    },
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: const Text(
-                      'Profil Bilgileri',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      AppCard(
+                        onTap: () {
+                          context.goNamed(RouteNames.adminAppointments);
+                        },
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.calendar_month, color: AppColors.primary),
+                            SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Randevuları Yönet',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Onay bekleyen veya planlı randevulara gözatın',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                          ],
+                        ),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(authControllerProvider.notifier).logout();
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text(
-                      'Çıkış Yap',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                      AppCard(
+                        onTap: () {
+                          context.goNamed(RouteNames.adminProfile);
+                        },
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.access_time, color: AppColors.primary),
+                            SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Çalışma Saatleri',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Haftalık çalışma gün ve saat aralıklarını güncelleyin',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                          ],
+                        ),
                       ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                      side: BorderSide(
-                        color: Theme.of(context).colorScheme.error,
+                      const SizedBox(height: AppSpacing.md),
+
+                      AppCard(
+                        onTap: () {
+                          context.goNamed(RouteNames.adminProfile);
+                        },
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.edit_note, color: AppColors.primary),
+                            SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'İşletme Profilini Düzenle',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Ad, telefon, adres ve detayları düzenleyin',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                          ],
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: AppSpacing.xl),
+
+                      // Outlined button for logout to satisfy unit tests
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            ref.read(authControllerProvider.notifier).logout();
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: const Text('Çıkış Yap'),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: AppSpacing.xxl),
+                    ],
                   ),
                 ),
               ],
@@ -474,6 +702,7 @@ class AdminHomeScreen extends ConsumerWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const AdminBottomNavigation(currentIndex: 0),
     );
   }
 }
