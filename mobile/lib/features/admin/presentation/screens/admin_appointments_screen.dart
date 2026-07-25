@@ -4,13 +4,9 @@ import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/theme/app_colors.dart';
 import 'package:sirasende_mobile/core/theme/app_radius.dart';
 import 'package:sirasende_mobile/core/theme/app_spacing.dart';
-import 'package:sirasende_mobile/core/theme/app_shadows.dart';
 import 'package:sirasende_mobile/features/appointment/domain/models/appointment.dart';
 import 'package:sirasende_mobile/features/appointment/presentation/providers/appointment_providers.dart';
-import 'package:sirasende_mobile/features/business/presentation/helpers/datetime_helpers.dart';
-import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
 import 'package:sirasende_mobile/shared/widgets/app_card.dart';
-import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
 import '../widgets/admin_bottom_navigation.dart';
 
@@ -42,15 +38,6 @@ class _AdminAppointmentsScreenState
 
   String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-  }
-
-  String _formatTurkishDateString(String dateStr) {
-    try {
-      final parsed = DateTime.parse(dateStr);
-      return formatTurkishDate(parsed);
-    } catch (_) {
-      return dateStr;
-    }
   }
 
   void _clearFilters() {
@@ -236,7 +223,9 @@ class _AdminAppointmentsScreenState
                       height: 10,
                       child: CircularProgressIndicator(
                         strokeWidth: 1.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(AppColors.error),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.error,
+                        ),
                       ),
                     )
                   : const Icon(Icons.refresh, size: 12),
@@ -284,7 +273,9 @@ class _AdminAppointmentsScreenState
               });
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Google Takvim senkronizasyonu başarısız oldu: $msg'),
+                  content: Text(
+                    'Google Takvim senkronizasyonu başarısız oldu: $msg',
+                  ),
                   backgroundColor: AppColors.error,
                 ),
               );
@@ -552,11 +543,17 @@ class _AdminAppointmentsScreenState
                       confirmLabel: 'Evet, Devam Et',
                     ),
                     icon: const Icon(Icons.close, size: 14),
-                    label: const Text('İptal Et', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'İptal Et',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                     ),
                   ),
@@ -573,7 +570,10 @@ class _AdminAppointmentsScreenState
                     icon: const Icon(Icons.check, size: 14),
                     label: const Text('Onayla', style: TextStyle(fontSize: 12)),
                     style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                     ),
                   ),
@@ -589,11 +589,17 @@ class _AdminAppointmentsScreenState
                       confirmLabel: 'Evet, Devam Et',
                     ),
                     icon: const Icon(Icons.close, size: 14),
-                    label: const Text('İptal Et', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'İptal Et',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.error,
                       side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                     ),
                   ),
@@ -608,10 +614,16 @@ class _AdminAppointmentsScreenState
                       confirmLabel: 'Evet, Devam Et',
                     ),
                     icon: const Icon(Icons.done, size: 14),
-                    label: const Text('Tamamla', style: TextStyle(fontSize: 12)),
+                    label: const Text(
+                      'Tamamla',
+                      style: TextStyle(fontSize: 12),
+                    ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       minimumSize: Size.zero,
                     ),
                   ),
@@ -642,8 +654,9 @@ class _AdminAppointmentsScreenState
     );
 
     final appointmentsAsync = ref.watch(adminAppointmentsProvider(params));
-    final isActionLoading =
-        ref.watch(adminAppointmentActionControllerProvider).isLoading;
+    final isActionLoading = ref
+        .watch(adminAppointmentActionControllerProvider)
+        .isLoading;
 
     final hasActiveFilter = _selectedDate != null || _selectedStatus != null;
 
@@ -680,7 +693,9 @@ class _AdminAppointmentsScreenState
                   // Horizontal Status Filters Scroll
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     child: Row(
                       children: _statusOptions.map((opt) {
                         final isSelected = _selectedStatus == opt['value'];
@@ -701,14 +716,18 @@ class _AdminAppointmentsScreenState
                             selectedColor: AppColors.primary,
                             backgroundColor: Colors.white,
                             labelStyle: TextStyle(
-                              color: isSelected ? Colors.white : AppColors.textPrimary,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(AppRadius.md),
                               side: BorderSide(
-                                color: isSelected ? AppColors.primary : AppColors.border,
+                                color: isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
                               ),
                             ),
                           ),
@@ -720,18 +739,28 @@ class _AdminAppointmentsScreenState
 
                   // Date Picker Trigger Row
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: InkWell(
-                            onTap: isActionLoading ? null : () => _selectDate(context),
+                            onTap: isActionLoading
+                                ? null
+                                : () => _selectDate(context),
                             child: InputDecorator(
                               decoration: const InputDecoration(
                                 hintText: 'Tarih Seçin',
                                 border: OutlineInputBorder(),
-                                prefixIcon: Icon(Icons.calendar_month, size: 18),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                prefixIcon: Icon(
+                                  Icons.calendar_month,
+                                  size: 18,
+                                ),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                               ),
                               child: Text(
                                 _selectedDate != null
@@ -746,7 +775,10 @@ class _AdminAppointmentsScreenState
                           const SizedBox(width: AppSpacing.md),
                           TextButton(
                             onPressed: isActionLoading ? null : _clearFilters,
-                            child: const Text('Temizle', style: TextStyle(color: AppColors.error)),
+                            child: const Text(
+                              'Temizle',
+                              style: TextStyle(color: AppColors.error),
+                            ),
                           ),
                         ],
                       ],
@@ -763,7 +795,8 @@ class _AdminAppointmentsScreenState
                   if (appointments.isEmpty) {
                     return const AppEmptyState(
                       title: 'Henüz randevu bulunmuyor',
-                      message: 'Seçilen filtrelere uygun gelen bir randevu bulunmamaktadır.',
+                      message:
+                          'Seçilen filtrelere uygun gelen bir randevu bulunmamaktadır.',
                       icon: Icons.calendar_today_outlined,
                     );
                   }

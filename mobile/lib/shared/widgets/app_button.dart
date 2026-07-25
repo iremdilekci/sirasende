@@ -42,20 +42,20 @@ class AppButton extends StatelessWidget {
             ),
           )
         : (icon != null
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    icon,
-                    size: 18,
-                    color: isOutlined ? AppColors.primary : Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(label, style: textStyle),
-                ],
-              )
-            : Text(label, style: textStyle));
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: isOutlined ? AppColors.primary : Colors.white,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(label, style: textStyle),
+                  ],
+                )
+              : Text(label, style: textStyle));
 
     final buttonStyle = ButtonStyle(
       minimumSize: WidgetStateProperty.all(const Size(88, 50)),

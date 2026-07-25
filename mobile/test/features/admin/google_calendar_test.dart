@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_profile_screen.dart';
@@ -50,6 +51,7 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   GoogleCalendarConnectionStatus? statusResult;
   GoogleCalendarConnectResult? connectResult;
   Object? error;
+  Duration? delay;
 
   int statusCalls = 0;
   int connectCalls = 0;
@@ -65,6 +67,9 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   @override
   Future<GoogleCalendarConnectResult> getConnectUrl() async {
     connectCalls++;
+    if (delay != null) {
+      await Future.delayed(delay!);
+    }
     if (error != null) throw error!;
     return connectResult!;
   }
@@ -117,6 +122,10 @@ void main() {
     late FakeBusinessRepository fakeBusinessRepo;
     late FakeGoogleCalendarRepository fakeGoogleCalendarRepo;
 
+    bool mockLaunchSuccess = true;
+    bool mockCanLaunch = false;
+    final List<String> launchedUrls = [];
+
     final dummyBusiness = const Business(
       id: '1',
       name: 'Ahmet Barber Shop',
@@ -136,6 +145,30 @@ void main() {
       fakeGoogleCalendarRepo = FakeGoogleCalendarRepository();
 
       fakeBusinessRepo.businessResult = dummyBusiness;
+
+      mockLaunchSuccess = true;
+      mockCanLaunch = false;
+      launchedUrls.clear();
+
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+            if (methodCall.method == 'canLaunch') {
+              return mockCanLaunch;
+            }
+            if (methodCall.method == 'launch') {
+              final url = methodCall.arguments['url'] as String;
+              launchedUrls.add(url);
+              return mockLaunchSuccess;
+            }
+            return null;
+          });
+    });
+
+    tearDown(() {
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
     });
 
     Widget makeTestableWidget(Widget child) {
@@ -273,5 +306,133 @@ void main() {
       // Verify no layout overflow exception thrown
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'OAuth Launch Flow: should attempt direct launchUrl even if canLaunchUrl is false and show no error on success',
+      (tester) async {
+        fakeGoogleCalendarRepo.statusResult =
+            const GoogleCalendarConnectionStatus(connected: false);
+        fakeGoogleCalendarRepo.connectResult =
+            const GoogleCalendarConnectResult(
+              authorizationUrl:
+                  'https://accounts.google.com/o/oauth2/auth?client_id=123',
+            );
+
+        mockCanLaunch = false;
+        mockLaunchSuccess = true;
+
+        await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
+        await tester.pumpAndSettle();
+
+        // Scroll to button to make it visible
+        await tester.ensureVisible(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        // Tap Google Takvim'i Bağla button
+        await tester.tap(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        expect(launchedUrls, hasLength(1));
+        expect(launchedUrls.first, startsWith('https://accounts.google.com'));
+        expect(find.textContaining('Bağlantı adresi açılamadı'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'OAuth Launch Flow: should show user-friendly error SnackBar when launchUrl returns false',
+      (tester) async {
+        fakeGoogleCalendarRepo.statusResult =
+            const GoogleCalendarConnectionStatus(connected: false);
+        fakeGoogleCalendarRepo.connectResult =
+            const GoogleCalendarConnectResult(
+              authorizationUrl:
+                  'https://accounts.google.com/o/oauth2/auth?client_id=123',
+            );
+
+        mockCanLaunch = false;
+        mockLaunchSuccess = false;
+
+        await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
+        await tester.pumpAndSettle();
+
+        // Scroll to button to make it visible
+        await tester.ensureVisible(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        // Tap Google Takvim'i Bağla button
+        await tester.tap(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        expect(launchedUrls, hasLength(1));
+        expect(
+          find.textContaining('Bağlantı adresi açılamadı'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'OAuth Launch Flow: should not open invalid URL (non-HTTPS) and show error SnackBar',
+      (tester) async {
+        fakeGoogleCalendarRepo.statusResult =
+            const GoogleCalendarConnectionStatus(connected: false);
+        fakeGoogleCalendarRepo.connectResult =
+            const GoogleCalendarConnectResult(
+              authorizationUrl: 'http://invalid-scheme.com', // Non-HTTPS
+            );
+
+        await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
+        await tester.pumpAndSettle();
+
+        // Scroll to button to make it visible
+        await tester.ensureVisible(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        // Tap Google Takvim'i Bağla button
+        await tester.tap(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        expect(launchedUrls, isEmpty);
+        expect(
+          find.textContaining(
+            'Yalnızca güvenli HTTPS bağlantı adresleri açılabilir.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'OAuth Launch Flow: should lock and not double-trigger connect/launch during double tap',
+      (tester) async {
+        fakeGoogleCalendarRepo.statusResult =
+            const GoogleCalendarConnectionStatus(connected: false);
+        fakeGoogleCalendarRepo.connectResult =
+            const GoogleCalendarConnectResult(
+              authorizationUrl:
+                  'https://accounts.google.com/o/oauth2/auth?client_id=123',
+            );
+        fakeGoogleCalendarRepo.delay = const Duration(milliseconds: 100);
+
+        await tester.pumpWidget(makeTestableWidget(const AdminProfileScreen()));
+        await tester.pumpAndSettle();
+
+        // Scroll to button to make it visible
+        await tester.ensureVisible(find.text('Google Takvim\'i Bağla'));
+        await tester.pumpAndSettle();
+
+        // Tap twice quickly without settled pump in between
+        await tester.tap(find.text('Google Takvim\'i Bağla'));
+        await tester.tap(find.text('Google Takvim\'i Bağla'));
+
+        // Pump with delayed duration to allow future completion
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pumpAndSettle();
+
+        // Should only query and launch exactly once!
+        expect(launchedUrls, hasLength(1));
+        expect(fakeGoogleCalendarRepo.connectCalls, 1);
+      },
+    );
   });
 }

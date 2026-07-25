@@ -4,7 +4,6 @@ import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/core/theme/app_colors.dart';
 import 'package:sirasende_mobile/core/theme/app_radius.dart';
 import 'package:sirasende_mobile/core/theme/app_spacing.dart';
-import 'package:sirasende_mobile/core/theme/app_shadows.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business.dart';
 import 'package:sirasende_mobile/features/business/domain/models/business_schedule.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
@@ -18,19 +17,12 @@ import 'package:sirasende_mobile/shared/widgets/app_text_field.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/admin_bottom_navigation.dart';
 
-enum ProfileView {
-  profile,
-  editProfile,
-  editSchedules,
-}
+enum ProfileView { profile, editProfile, editSchedules }
 
 class AdminProfileScreen extends ConsumerStatefulWidget {
   final ProfileView initialView;
 
-  const AdminProfileScreen({
-    super.key,
-    this.initialView = ProfileView.profile,
-  });
+  const AdminProfileScreen({super.key, this.initialView = ProfileView.profile});
 
   @override
   ConsumerState<AdminProfileScreen> createState() => _AdminProfileScreenState();
@@ -51,9 +43,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   int? _slotDuration;
 
   bool _initialized = false;
-  String? _timeError;
   List<BusinessSchedule>? _localSchedules;
   Map<int, String> _scheduleErrors = {};
+  bool _isConnectingCalendar = false;
 
   final turkishDays = const [
     'Pazartesi',
@@ -135,13 +127,6 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
     return '$hourStr:$minuteStr:00';
   }
 
-  bool _validateTimes() {
-    if (_startTime == null || _endTime == null) return true;
-    final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
-    final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
-    return endMinutes > startMinutes;
-  }
-
   bool _validateSchedules() {
     setState(() {
       _scheduleErrors = {};
@@ -175,7 +160,8 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           final endMinutes = end.hour * 60 + end.minute;
           if (endMinutes <= startMinutes) {
             setState(() {
-              _scheduleErrors[i] = '${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.';
+              _scheduleErrors[i] =
+                  '${turkishDays[sched.dayOfWeek]} günü kapanış saati açılıştan sonra olmalıdır.';
             });
             isValid = false;
           }
@@ -183,12 +169,6 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
       }
     }
     return isValid;
-  }
-
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 
   String _formatTimeString(String timeStr) {
@@ -241,7 +221,8 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   Future<void> _selectDayStartTime(BuildContext context, int index) async {
     final sched = _localSchedules![index];
     final parsed =
-        _parseTimeString(sched.startTime) ?? const TimeOfDay(hour: 9, minute: 0);
+        _parseTimeString(sched.startTime) ??
+        const TimeOfDay(hour: 9, minute: 0);
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: parsed,
@@ -289,7 +270,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   void _submitProfileChanges() {
     if (!_formKey.currentState!.validate()) return;
 
-    final startStr = _startTime != null ? _timeOfDayToString(_startTime!) : null;
+    final startStr = _startTime != null
+        ? _timeOfDayToString(_startTime!)
+        : null;
     final endStr = _endTime != null ? _timeOfDayToString(_endTime!) : null;
 
     final schedulesPayload = _localSchedules?.map((sched) {
@@ -333,7 +316,10 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           onError: (message) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message), backgroundColor: AppColors.error),
+                SnackBar(
+                  content: Text(message),
+                  backgroundColor: AppColors.error,
+                ),
               );
             }
           },
@@ -343,7 +329,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   void _submitSchedulesChanges() {
     if (!_validateSchedules()) return;
 
-    final startStr = _startTime != null ? _timeOfDayToString(_startTime!) : null;
+    final startStr = _startTime != null
+        ? _timeOfDayToString(_startTime!)
+        : null;
     final endStr = _endTime != null ? _timeOfDayToString(_endTime!) : null;
 
     final schedulesPayload = _localSchedules?.map((sched) {
@@ -387,7 +375,10 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
           onError: (message) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message), backgroundColor: AppColors.error),
+                SnackBar(
+                  content: Text(message),
+                  backgroundColor: AppColors.error,
+                ),
               );
             }
           },
@@ -484,8 +475,11 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
               const Divider(height: AppSpacing.xl),
               Row(
                 children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -503,8 +497,11 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.phone_outlined,
-                      size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.phone_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -520,8 +517,11 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.timer_outlined,
-                      size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.timer_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -588,7 +588,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
             children: List.generate(7, (index) {
               final sortedSched = business.schedules.length == 7
                   ? (List<BusinessSchedule>.from(business.schedules)
-                    ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek)))
+                      ..sort((a, b) => a.dayOfWeek.compareTo(b.dayOfWeek)))
                   : List.generate(7, (index) {
                       return BusinessSchedule(
                         dayOfWeek: index,
@@ -628,8 +628,12 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                       scheduleText,
                       style: TextStyle(
                         fontSize: 12,
-                        fontWeight: sched.isClosed ? FontWeight.normal : FontWeight.bold,
-                        color: sched.isClosed ? AppColors.textSecondary : AppColors.primary,
+                        fontWeight: sched.isClosed
+                            ? FontWeight.normal
+                            : FontWeight.bold,
+                        color: sched.isClosed
+                            ? AppColors.textSecondary
+                            : AppColors.primary,
                       ),
                       textAlign: TextAlign.end,
                     ),
@@ -670,10 +674,7 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
               const SizedBox(height: 4),
               Text(
                 'Yönetici Oturumu',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
               ),
               const Divider(height: AppSpacing.lg),
               SizedBox(
@@ -905,7 +906,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                   border: OutlineInputBorder(),
                                   prefixIcon: Icon(Icons.access_time, size: 16),
                                   contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                 ),
                                 child: Text(
                                   sched.startTime != null
@@ -926,10 +929,14 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                                 decoration: const InputDecoration(
                                   labelText: 'Kapanış Saati',
                                   border: OutlineInputBorder(),
-                                  prefixIcon:
-                                      Icon(Icons.access_time_filled, size: 16),
+                                  prefixIcon: Icon(
+                                    Icons.access_time_filled,
+                                    size: 16,
+                                  ),
                                   contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 8),
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                 ),
                                 child: Text(
                                   sched.endTime != null
@@ -1113,7 +1120,9 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
                     label: 'Bağlantıyı Kaldır',
                     isOutlined: true,
                     isLoading: isLoading,
-                    onPressed: isLoading ? null : _showDisconnectConfirmationDialog,
+                    onPressed: isLoading
+                        ? null
+                        : _showDisconnectConfirmationDialog,
                   ),
                 ),
               ],
@@ -1177,37 +1186,91 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
   }
 
   Future<void> _connectGoogleCalendar() async {
-    final controller = ref.read(googleCalendarControllerProvider.notifier);
-    final authUrl = await controller.connect(
-      onError: (msg) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Bağlantı kurulamadı: $msg'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      },
-    );
+    if (_isConnectingCalendar) return;
+    setState(() {
+      _isConnectingCalendar = true;
+    });
 
-    if (authUrl != null && mounted) {
-      final uri = Uri.parse(authUrl);
-      try {
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        } else {
-          throw Exception('URL açılamadı.');
-        }
-      } catch (e) {
+    try {
+      final controller = ref.read(googleCalendarControllerProvider.notifier);
+      final authUrl = await controller.connect(
+        onError: (msg) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Bağlantı kurulamadı: $msg'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        },
+      );
+
+      if (authUrl == null || authUrl.isEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Bağlantı adresi açılamadı: $e'),
+            const SnackBar(
+              content: Text('Geçersiz veya boş bağlantı adresi.'),
               backgroundColor: AppColors.error,
             ),
           );
         }
+        return;
+      }
+
+      final uri = Uri.tryParse(authUrl);
+      if (uri == null || uri.scheme != 'https') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Yalnızca güvenli HTTPS bağlantı adresleri açılabilir.',
+              ),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      debugPrint('=== GOOGLE CALENDAR CONNECT ===');
+      debugPrint('Received OAuth URL scheme: ${uri.scheme}, host: ${uri.host}');
+
+      if (mounted) {
+        try {
+          // Diagnostic check only - does not block launching
+          final canLaunch = await canLaunchUrl(uri);
+          debugPrint('Diagnostic canLaunchUrl result: $canLaunch');
+
+          debugPrint('Attempting direct launchUrl...');
+          final success = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          debugPrint('launchUrl result success: $success');
+
+          if (!success) {
+            throw Exception('Tarayıcı üzerinden bağlantı adresi açılamadı.');
+          }
+        } catch (e, stackTrace) {
+          debugPrint('Google Calendar Connect Launch Error: $e');
+          debugPrint('Stacktrace: $stackTrace');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Bağlantı adresi açılamadı: $e'),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          }
+        }
+      }
+      debugPrint('===============================');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isConnectingCalendar = false;
+        });
       }
     }
   }
@@ -1252,7 +1315,10 @@ class _AdminProfileScreenState extends ConsumerState<AdminProfileScreen> {
             onError: (msg) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(msg), backgroundColor: AppColors.error),
+                  SnackBar(
+                    content: Text(msg),
+                    backgroundColor: AppColors.error,
+                  ),
                 );
               }
             },

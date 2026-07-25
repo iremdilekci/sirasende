@@ -143,7 +143,7 @@ void main() {
     });
 
     testWidgets(
-      'should navigate to customer home when customer button is tapped',
+      'should navigate to customer home and back, and prevent duplicate pushes on double tap',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -156,36 +156,55 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        // Tap customer button
+        // Tap customer button twice quickly
+        await tester.tap(find.text('Müşteri olarak devam et'));
         await tester.tap(find.text('Müşteri olarak devam et'));
         await tester.pumpAndSettle();
 
         // Verify we arrived at the customer list screen
         expect(find.text('İşletmeler'), findsOneWidget);
         expect(find.byType(CustomerBusinessListScreen), findsOneWidget);
+
+        // Simulate Android back button press
+        final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+        await navigator.maybePop();
+        await tester.pumpAndSettle();
+
+        // Verify we returned back to RoleSelectionScreen
+        expect(find.byType(RoleSelectionScreen), findsOneWidget);
       },
     );
 
-    testWidgets('should navigate to admin login when esnaf button is tapped', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            authControllerProvider.overrideWith(() => FakeAuthController()),
-            businessRepositoryProvider.overrideWithValue(fakeRepo),
-          ],
-          child: const SiraSendeApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'should navigate to admin login and back, and prevent duplicate pushes on double tap',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              authControllerProvider.overrideWith(() => FakeAuthController()),
+              businessRepositoryProvider.overrideWithValue(fakeRepo),
+            ],
+            child: const SiraSendeApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      // Tap esnaf button
-      await tester.tap(find.text('Esnaf olarak devam et'));
-      await tester.pumpAndSettle();
+        // Tap esnaf button twice quickly
+        await tester.tap(find.text('Esnaf olarak devam et'));
+        await tester.tap(find.text('Esnaf olarak devam et'));
+        await tester.pumpAndSettle();
 
-      // Verify we arrived at the admin login screen
-      expect(find.text('İşletme Girişi'), findsWidgets);
-    });
+        // Verify we arrived at the admin login screen
+        expect(find.text('İşletme Girişi'), findsWidgets);
+
+        // Simulate Android back button press
+        final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+        await navigator.maybePop();
+        await tester.pumpAndSettle();
+
+        // Verify we returned back to RoleSelectionScreen
+        expect(find.byType(RoleSelectionScreen), findsOneWidget);
+      },
+    );
   });
 }

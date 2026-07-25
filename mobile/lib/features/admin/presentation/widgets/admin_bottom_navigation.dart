@@ -6,10 +6,7 @@ import '../../../../core/router/route_names.dart';
 class AdminBottomNavigation extends StatelessWidget {
   final int currentIndex;
 
-  const AdminBottomNavigation({
-    super.key,
-    required this.currentIndex,
-  });
+  const AdminBottomNavigation({super.key, required this.currentIndex});
 
   void _onItemTapped(int index, BuildContext context) {
     if (index == currentIndex) return;
@@ -30,9 +27,7 @@ class AdminBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: AppColors.border, width: 1.0),
-        ),
+        border: Border(top: BorderSide(color: AppColors.border, width: 1.0)),
       ),
       child: BottomNavigationBar(
         currentIndex: currentIndex,

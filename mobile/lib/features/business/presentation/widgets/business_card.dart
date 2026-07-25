@@ -13,7 +13,8 @@ class BusinessCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showAddress = business.address != null && business.address!.isNotEmpty;
+    final showAddress =
+        business.address != null && business.address!.isNotEmpty;
     final showPhone = business.phone != null && business.phone!.isNotEmpty;
     final scheduleText = business.todayScheduleText;
     final isClosed = scheduleText.contains('kapalı');

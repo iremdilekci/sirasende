@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
+import 'package:sirasende_mobile/core/router/route_names.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/admin_login_screen.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
@@ -11,6 +13,7 @@ class FakeAuthController extends AuthController {
   Object? errorOverride;
   bool isLoader = false;
   int loginCalls = 0;
+  Duration? delay;
 
   @override
   FutureOr<AdminUser?> build() async {
@@ -31,6 +34,9 @@ class FakeAuthController extends AuthController {
     void Function(String)? onFailure,
   }) async {
     loginCalls++;
+    if (delay != null) {
+      await Future.delayed(delay!);
+    }
     if (errorOverride != null) {
       state = AsyncValue.error(errorOverride!, StackTrace.current);
       onFailure?.call(errorOverride.toString());
@@ -52,15 +58,32 @@ class FakeAuthController extends AuthController {
 void main() {
   group('AdminLoginScreen Widget Tests', () {
     late FakeAuthController fakeController;
+    late GoRouter router;
 
     setUp(() {
       fakeController = FakeAuthController();
+      router = GoRouter(
+        initialLocation: '/login',
+        routes: [
+          GoRoute(
+            path: '/login',
+            name: RouteNames.adminLogin,
+            builder: (context, state) => const AdminLoginScreen(),
+          ),
+          GoRoute(
+            path: '/admin/home',
+            name: RouteNames.adminHome,
+            builder: (context, state) =>
+                const Scaffold(body: Text('Admin Dashboard')),
+          ),
+        ],
+      );
     });
 
     Widget createWidgetUnderTest() {
       return ProviderScope(
         overrides: [authControllerProvider.overrideWith(() => fakeController)],
-        child: const MaterialApp(home: AdminLoginScreen()),
+        child: MaterialApp.router(routerConfig: router),
       );
     }
 
@@ -197,5 +220,110 @@ void main() {
 
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'successful login transitions to dashboard, stops spinner and replaces stack',
+      (WidgetTester tester) async {
+        fakeController.delay = const Duration(milliseconds: 100);
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Kullanıcı adı veya e-posta'),
+          'admin_user',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Şifre'),
+          'pass123',
+        );
+
+        final button = find.widgetWithText(FilledButton, 'Giriş Yap');
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+
+        // Spinner starts showing while async call is running
+        await tester.pump();
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+        // Allow delay to complete
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pumpAndSettle();
+
+        // Navigated to dashboard!
+        expect(find.text('Admin Dashboard'), findsOneWidget);
+        expect(find.byType(AdminLoginScreen), findsNothing);
+
+        // Verify that Android system back button cannot pop (login screen is replaced)
+        expect(router.canPop(), isFalse);
+      },
+    );
+
+    testWidgets(
+      'double tap does not trigger duplicate login calls or navigation',
+      (WidgetTester tester) async {
+        fakeController.delay = const Duration(milliseconds: 100);
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Kullanıcı adı veya e-posta'),
+          'admin_user',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Şifre'),
+          'pass123',
+        );
+
+        final button = find.widgetWithText(FilledButton, 'Giriş Yap');
+        await tester.ensureVisible(button);
+
+        // Tap twice quickly without pumping in between
+        await tester.tap(button);
+        await tester.tap(button);
+
+        // Let the delay complete
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.pumpAndSettle();
+
+        // Login should only be called EXACTLY once!
+        expect(fakeController.loginCalls, 1);
+      },
+    );
+
+    testWidgets(
+      'backend exception should close loading state and show user-friendly error',
+      (WidgetTester tester) async {
+        fakeController.errorOverride = const AppException(
+          message: 'Beklenmeyen sunucu hatası.',
+          code: 'SERVER_ERROR',
+        );
+
+        await tester.pumpWidget(createWidgetUnderTest());
+        await tester.pumpAndSettle();
+
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Kullanıcı adı veya e-posta'),
+          'admin_user',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextFormField, 'Şifre'),
+          'pass123',
+        );
+
+        final button = find.widgetWithText(FilledButton, 'Giriş Yap');
+        await tester.ensureVisible(button);
+        await tester.tap(button);
+        await tester.pumpAndSettle();
+
+        // Spinner is gone (button is back to 'Giriş Yap')
+        expect(find.text('Giriş Yap'), findsOneWidget);
+        expect(find.text('Giriş Yapılıyor...'), findsNothing);
+
+        // Error message is displayed
+        expect(find.text('Beklenmeyen sunucu hatası.'), findsOneWidget);
+      },
+    );
   });
 }

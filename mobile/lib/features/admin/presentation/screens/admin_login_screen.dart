@@ -22,6 +22,7 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -31,23 +32,42 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
+
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final authNotifier = ref.read(authControllerProvider.notifier);
+    setState(() {
+      _isSubmitting = true;
+    });
 
-    await authNotifier.login(
-      identifier: _identifierController.text,
-      password: _passwordController.text,
-      onFailure: (errorMsg) {
-        if (mounted) {
-          _passwordController.clear();
-        }
-      },
-    );
+    try {
+      final authNotifier = ref.read(authControllerProvider.notifier);
+
+      await authNotifier.login(
+        identifier: _identifierController.text,
+        password: _passwordController.text,
+        onSuccess: () {
+          if (mounted) {
+            context.goNamed(RouteNames.adminHome);
+          }
+        },
+        onFailure: (errorMsg) {
+          if (mounted) {
+            _passwordController.clear();
+          }
+        },
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   String _mapErrorMessage(Object? error) {
@@ -208,11 +228,13 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
 
                           // Submit Button
                           AppButton(
-                            label: isLoading
+                            label: (isLoading || _isSubmitting)
                                 ? 'Giriş Yapılıyor...'
                                 : 'Giriş Yap',
-                            isLoading: isLoading,
-                            onPressed: isLoading ? null : _submit,
+                            isLoading: isLoading || _isSubmitting,
+                            onPressed: (isLoading || _isSubmitting)
+                                ? null
+                                : _submit,
                           ),
                         ],
                       ),

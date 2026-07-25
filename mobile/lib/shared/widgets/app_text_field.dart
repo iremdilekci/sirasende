@@ -41,10 +41,7 @@ class _AppTextFieldState extends State<AppTextField> {
       obscureText: widget.isPassword ? _obscureText : false,
       maxLines: widget.isPassword ? 1 : widget.maxLines,
       onChanged: widget.onChanged,
-      style: const TextStyle(
-        fontSize: 14,
-        color: AppColors.textPrimary,
-      ),
+      style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: widget.label,
         labelStyle: const TextStyle(
@@ -64,7 +61,9 @@ class _AppTextFieldState extends State<AppTextField> {
         suffixIcon: widget.isPassword
             ? IconButton(
                 icon: Icon(
-                  _obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  _obscureText
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   size: 20,
                   color: AppColors.textSecondary,
                 ),

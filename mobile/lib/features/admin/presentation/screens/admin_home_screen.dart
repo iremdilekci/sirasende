@@ -12,7 +12,6 @@ import 'package:sirasende_mobile/features/appointment/domain/models/appointment.
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/business_providers.dart';
 import 'package:sirasende_mobile/shared/widgets/app_card.dart';
-import 'package:sirasende_mobile/shared/widgets/app_loading_indicator.dart';
 import 'package:sirasende_mobile/shared/widgets/app_empty_state.dart';
 import '../widgets/admin_bottom_navigation.dart';
 
@@ -107,10 +106,7 @@ class AdminHomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildTotalCard({
-    required BuildContext context,
-    required int count,
-  }) {
+  Widget _buildTotalCard({required BuildContext context, required int count}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -209,11 +205,7 @@ class AdminHomeScreen extends ConsumerWidget {
           ),
           const SizedBox(width: AppSpacing.lg),
           // Divider
-          Container(
-            height: 36,
-            width: 1,
-            color: AppColors.border,
-          ),
+          Container(height: 36, width: 1, color: AppColors.border),
           const SizedBox(width: AppSpacing.lg),
           // Details
           Expanded(
@@ -364,7 +356,9 @@ class AdminHomeScreen extends ConsumerWidget {
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -404,13 +398,18 @@ class AdminHomeScreen extends ConsumerWidget {
                       // Summary & Statistics Cards block
                       appointmentsAsync.when(
                         data: (appointments) {
-                          final summary = DashboardSummary.fromAppointments(appointments);
+                          final summary = DashboardSummary.fromAppointments(
+                            appointments,
+                          );
 
                           return Wrap(
                             spacing: 12,
                             runSpacing: 12,
                             children: [
-                              _buildTotalCard(context: context, count: summary.total),
+                              _buildTotalCard(
+                                context: context,
+                                count: summary.total,
+                              ),
                               _buildSummaryCard(
                                 context: context,
                                 title: 'Beklemede',
@@ -446,9 +445,8 @@ class AdminHomeScreen extends ConsumerWidget {
                             ],
                           );
                         },
-                        loading: () => const Center(
-                          child: CircularProgressIndicator(),
-                        ),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
                         error: (error, _) => AppEmptyState(
                           title: 'Özet Yüklenemedi',
                           message: _mapErrorMessage(error),
@@ -496,11 +494,15 @@ class AdminHomeScreen extends ConsumerWidget {
                       appointmentsAsync.when(
                         data: (appointments) {
                           final upcoming = appointments
-                              .where((app) =>
-                                  app.status == 'confirmed' ||
-                                  app.status == 'pending')
+                              .where(
+                                (app) =>
+                                    app.status == 'confirmed' ||
+                                    app.status == 'pending',
+                              )
                               .toList();
-                          upcoming.sort((a, b) => a.startTime.compareTo(b.startTime));
+                          upcoming.sort(
+                            (a, b) => a.startTime.compareTo(b.startTime),
+                          );
 
                           if (upcoming.isEmpty) {
                             return const AppEmptyState(
@@ -513,10 +515,12 @@ class AdminHomeScreen extends ConsumerWidget {
                           return Column(
                             children: upcoming
                                 .take(3)
-                                .map((app) => _buildUpcomingItem(
-                                      context: context,
-                                      appointment: app,
-                                    ))
+                                .map(
+                                  (app) => _buildUpcomingItem(
+                                    context: context,
+                                    appointment: app,
+                                  ),
+                                )
                                 .toList(),
                           );
                         },
@@ -537,7 +541,9 @@ class AdminHomeScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: AppColors.error.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(AppRadius.md),
-                            border: Border.all(color: AppColors.error.withOpacity(0.15)),
+                            border: Border.all(
+                              color: AppColors.error.withOpacity(0.15),
+                            ),
                           ),
                           child: Text(
                             'Randevular yüklenemedi: ${_mapErrorMessage(error)}',
@@ -572,7 +578,10 @@ class AdminHomeScreen extends ConsumerWidget {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.calendar_month, color: AppColors.primary),
+                            Icon(
+                              Icons.calendar_month,
+                              color: AppColors.primary,
+                            ),
                             SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Column(
@@ -596,7 +605,10 @@ class AdminHomeScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -636,7 +648,10 @@ class AdminHomeScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
                         ),
                       ),
@@ -676,7 +691,10 @@ class AdminHomeScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                            Icon(
+                              Icons.chevron_right,
+                              color: AppColors.textSecondary,
+                            ),
                           ],
                         ),
                       ),

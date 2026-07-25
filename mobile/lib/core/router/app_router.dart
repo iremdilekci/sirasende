@@ -19,7 +19,7 @@ import 'package:sirasende_mobile/features/admin/presentation/screens/google_cale
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final listenable = ValueNotifier<AsyncValue<AdminUser?>>(
-    const AsyncValue.loading(),
+    ref.read(authControllerProvider),
   );
 
   ref.listen<AsyncValue<AdminUser?>>(authControllerProvider, (previous, next) {
@@ -56,27 +56,44 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/',
         name: RouteNames.roleSelection,
         builder: (context, state) => const RoleSelectionScreen(),
-      ),
-      GoRoute(
-        path: '/customer',
-        name: RouteNames.customerHome,
-        builder: (context, state) => const CustomerBusinessListScreen(),
         routes: [
           GoRoute(
-            path: 'businesses/:slug',
-            name: RouteNames.customerBusinessDetail,
-            builder: (context, state) {
-              final slug = state.pathParameters['slug']!;
-              return BusinessDetailScreen(slug: slug);
-            },
+            path: 'customer',
+            name: RouteNames.customerHome,
+            builder: (context, state) => const CustomerBusinessListScreen(),
             routes: [
               GoRoute(
-                path: 'appointment',
-                name: RouteNames.customerAppointmentForm,
+                path: 'businesses/:slug',
+                name: RouteNames.customerBusinessDetail,
+                builder: (context, state) {
+                  final slug = state.pathParameters['slug']!;
+                  return BusinessDetailScreen(slug: slug);
+                },
+                routes: [
+                  GoRoute(
+                    path: 'appointment',
+                    name: RouteNames.customerAppointmentForm,
+                    builder: (context, state) {
+                      final args = state.extra;
+                      if (args is AppointmentFormArgs) {
+                        return AppointmentFormScreen(args: args);
+                      }
+                      return const Scaffold(
+                        body: Center(
+                          child: Text('Geçersiz sayfa parametreleri.'),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'appointment/success',
+                name: RouteNames.customerAppointmentSuccess,
                 builder: (context, state) {
                   final args = state.extra;
-                  if (args is AppointmentFormArgs) {
-                    return AppointmentFormScreen(args: args);
+                  if (args is AppointmentSuccessArgs) {
+                    return AppointmentSuccessScreen(args: args);
                   }
                   return const Scaffold(
                     body: Center(child: Text('Geçersiz sayfa parametreleri.')),
@@ -86,24 +103,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
           GoRoute(
-            path: 'appointment/success',
-            name: RouteNames.customerAppointmentSuccess,
-            builder: (context, state) {
-              final args = state.extra;
-              if (args is AppointmentSuccessArgs) {
-                return AppointmentSuccessScreen(args: args);
-              }
-              return const Scaffold(
-                body: Center(child: Text('Geçersiz sayfa parametreleri.')),
-              );
-            },
+            path: 'admin/login',
+            name: RouteNames.adminLogin,
+            builder: (context, state) => const AdminLoginScreen(),
           ),
         ],
-      ),
-      GoRoute(
-        path: '/admin/login',
-        name: RouteNames.adminLogin,
-        builder: (context, state) => const AdminLoginScreen(),
       ),
       GoRoute(
         path: '/admin/home',

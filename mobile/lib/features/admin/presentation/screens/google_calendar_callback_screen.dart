@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:sirasende_mobile/core/router/route_names.dart';
 import 'package:sirasende_mobile/core/theme/app_colors.dart';
 import 'package:sirasende_mobile/core/theme/app_spacing.dart';
-import 'package:sirasende_mobile/core/theme/app_radius.dart';
 import 'package:sirasende_mobile/shared/widgets/app_button.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
 
@@ -57,7 +56,10 @@ class _GoogleCalendarCallbackScreenState
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Google Takvim Bağlantısı', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Google Takvim Bağlantısı',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         automaticallyImplyLeading: false, // Prevent going back via back button
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,

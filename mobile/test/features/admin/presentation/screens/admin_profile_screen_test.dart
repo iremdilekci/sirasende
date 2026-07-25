@@ -12,6 +12,7 @@ import 'package:sirasende_mobile/features/business/presentation/providers/busine
 import 'package:sirasende_mobile/features/business/domain/repositories/google_calendar_repository.dart';
 import 'package:sirasende_mobile/features/business/presentation/providers/google_calendar_providers.dart';
 import 'package:sirasende_mobile/features/business/domain/models/slot.dart';
+
 class FakeBusinessRepository implements BusinessRepository {
   Business? businessResult;
   Object? fetchError;
@@ -100,7 +101,8 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
   Future<GoogleCalendarConnectionStatus> getConnectionStatus() async {
     statusCalls++;
     if (error != null) throw error!;
-    return statusResult ?? const GoogleCalendarConnectionStatus(connected: false);
+    return statusResult ??
+        const GoogleCalendarConnectionStatus(connected: false);
   }
 
   @override
@@ -108,7 +110,9 @@ class FakeGoogleCalendarRepository implements GoogleCalendarRepository {
     connectCalls++;
     if (error != null) throw error!;
     return connectResult ??
-        const GoogleCalendarConnectResult(authorizationUrl: 'https://mock-auth.url');
+        const GoogleCalendarConnectResult(
+          authorizationUrl: 'https://mock-auth.url',
+        );
   }
 
   @override
@@ -142,7 +146,9 @@ void main() {
       fakeGoogleCalendarRepo = FakeGoogleCalendarRepository();
     });
 
-    Widget createWidgetUnderTest({ProfileView initialView = ProfileView.editProfile}) {
+    Widget createWidgetUnderTest({
+      ProfileView initialView = ProfileView.editProfile,
+    }) {
       return ProviderScope(
         overrides: [
           businessRepositoryProvider.overrideWithValue(fakeRepo),
@@ -157,7 +163,9 @@ void main() {
     testWidgets('should display business profile details when loaded', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.profile));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.profile),
+      );
       await tester.pump(); // Start fetching
       await tester.pump(); // Render data state
 
@@ -174,7 +182,9 @@ void main() {
     testWidgets('should show validation error when business name is empty', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editProfile),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -194,7 +204,9 @@ void main() {
     testWidgets('should show validation error when phone number is invalid', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editProfile),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -217,7 +229,9 @@ void main() {
     testWidgets('should show green snackbar on successful profile update', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editProfile),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -241,10 +255,7 @@ void main() {
       expect(fakeRepo.lastUpdateDesc, 'Yeni aciklama');
 
       // Check success snackbar
-      expect(
-        find.text('İşletme bilgileri güncellendi.'),
-        findsOneWidget,
-      );
+      expect(find.text('İşletme bilgileri güncellendi.'), findsOneWidget);
     });
 
     testWidgets('should show red snackbar on update failure', (tester) async {
@@ -253,7 +264,9 @@ void main() {
         code: 'PHONE_TAKEN',
       );
 
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editProfile));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editProfile),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -278,7 +291,9 @@ void main() {
           code: 'LOAD_ERROR',
         );
 
-        await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.profile));
+        await tester.pumpWidget(
+          createWidgetUnderTest(initialView: ProfileView.profile),
+        );
         await tester.pump();
         await tester.pumpAndSettle(); // Settle all async / future states
 
@@ -301,7 +316,9 @@ void main() {
     testWidgets('should display 7 days in correct order initially', (
       tester,
     ) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -363,7 +380,9 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -376,7 +395,9 @@ void main() {
     });
 
     testWidgets('closed day switch disables hours selection', (tester) async {
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -442,7 +463,9 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -506,7 +529,9 @@ void main() {
         ],
       );
 
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 
@@ -533,7 +558,9 @@ void main() {
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1.0;
 
-      await tester.pumpWidget(createWidgetUnderTest(initialView: ProfileView.editSchedules));
+      await tester.pumpWidget(
+        createWidgetUnderTest(initialView: ProfileView.editSchedules),
+      );
       await tester.pump();
       await tester.pump();
 

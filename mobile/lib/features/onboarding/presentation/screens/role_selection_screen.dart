@@ -9,11 +9,33 @@ import '../../../../features/auth/presentation/providers/auth_providers.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_card.dart';
 
-class RoleSelectionScreen extends ConsumerWidget {
+class RoleSelectionScreen extends ConsumerStatefulWidget {
   const RoleSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RoleSelectionScreen> createState() =>
+      _RoleSelectionScreenState();
+}
+
+class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
+  bool _isNavigating = false;
+
+  void _navigateTo(String routeName) {
+    if (_isNavigating) return;
+    setState(() {
+      _isNavigating = true;
+    });
+    context.pushNamed(routeName).then((_) {
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
 
     if (authState.isLoading && authState.value == null) {
@@ -137,8 +159,7 @@ class RoleSelectionScreen extends ConsumerWidget {
                         const SizedBox(height: AppSpacing.xl),
                         AppButton(
                           label: 'Müşteri olarak devam et',
-                          onPressed: () =>
-                              context.goNamed(RouteNames.customerHome),
+                          onPressed: () => _navigateTo(RouteNames.customerHome),
                         ),
                       ],
                     ),
@@ -191,8 +212,7 @@ class RoleSelectionScreen extends ConsumerWidget {
                         AppButton(
                           label: 'Esnaf olarak devam et',
                           isOutlined: true,
-                          onPressed: () =>
-                              context.goNamed(RouteNames.adminLogin),
+                          onPressed: () => _navigateTo(RouteNames.adminLogin),
                         ),
                       ],
                     ),
