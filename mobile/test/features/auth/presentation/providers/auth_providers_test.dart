@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/core/errors/app_exception.dart';
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
 import 'package:sirasende_mobile/features/auth/data/models/token_response.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_response.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/domain/repositories/auth_repository.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
@@ -49,6 +51,18 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> deleteToken() async {
     deleteTokenCalls++;
     tokenValue = null;
+  }
+
+  @override
+  Future<RegistrationResponse> register(RegistrationRequest request) async {
+    return const RegistrationResponse(
+      adminId: 'a1',
+      businessId: 'b1',
+      username: 'user',
+      email: 'user@test.com',
+      businessName: 'Biz',
+      message: 'Success',
+    );
   }
 }
 

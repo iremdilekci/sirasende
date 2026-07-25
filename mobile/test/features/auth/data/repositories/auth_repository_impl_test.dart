@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sirasende_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
 import 'package:sirasende_mobile/features/auth/data/models/token_response.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_response.dart';
 import 'package:sirasende_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 
@@ -78,6 +80,18 @@ class FakeAuthRemoteDataSource implements AuthRemoteDataSource {
     meCalls++;
     if (meError != null) throw meError!;
     return meResult!;
+  }
+
+  @override
+  Future<RegistrationResponse> register(RegistrationRequest request) async {
+    return const RegistrationResponse(
+      adminId: 'a1',
+      businessId: 'b1',
+      username: 'user',
+      email: 'user@test.com',
+      businessName: 'Biz',
+      message: 'Success',
+    );
   }
 }
 

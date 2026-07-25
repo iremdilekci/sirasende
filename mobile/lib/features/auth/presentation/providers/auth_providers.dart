@@ -4,6 +4,8 @@ import 'package:sirasende_mobile/core/network/dio_provider.dart';
 import 'package:sirasende_mobile/core/storage/secure_storage_provider.dart';
 import 'package:sirasende_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_response.dart';
 import 'package:sirasende_mobile/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/domain/repositories/auth_repository.dart';
@@ -85,3 +87,33 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 final authControllerProvider =
     AsyncNotifierProvider<AuthController, AdminUser?>(AuthController.new);
+
+class AdminRegistrationController extends AsyncNotifier<void> {
+  late final AuthRepository _repository;
+
+  @override
+  FutureOr<void> build() {
+    _repository = ref.watch(authRepositoryProvider);
+  }
+
+  Future<void> register({
+    required RegistrationRequest request,
+    void Function(RegistrationResponse)? onSuccess,
+    void Function(String)? onFailure,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _repository.register(request);
+      state = const AsyncValue.data(null);
+      onSuccess?.call(response);
+    } catch (e, stackTrace) {
+      state = AsyncValue.error(e, stackTrace);
+      onFailure?.call(e.toString());
+    }
+  }
+}
+
+final adminRegistrationControllerProvider =
+    AsyncNotifierProvider.autoDispose<AdminRegistrationController, void>(
+      AdminRegistrationController.new,
+    );

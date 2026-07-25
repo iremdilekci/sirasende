@@ -2,6 +2,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sirasende_mobile/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
 import 'package:sirasende_mobile/features/auth/data/models/token_response.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_response.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/domain/repositories/auth_repository.dart';
 
@@ -16,6 +18,11 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<TokenResponse> login(LoginRequest request) {
     return _remoteDataSource.login(request);
+  }
+
+  @override
+  Future<RegistrationResponse> register(RegistrationRequest request) {
+    return _remoteDataSource.register(request);
   }
 
   @override

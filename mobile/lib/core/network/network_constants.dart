@@ -20,6 +20,7 @@ class NetworkConstants {
 
   static const login = '/api/v1/auth/login';
   static const me = '/api/v1/auth/me';
+  static const register = '/api/v1/auth/register';
   static const adminAppointments = '/api/v1/admin/appointments';
   static const adminBusiness = '/api/v1/admin/business';
   static const googleCalendarStatus = '/api/v1/admin/google-calendar/status';

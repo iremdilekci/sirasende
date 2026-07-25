@@ -12,7 +12,9 @@ import '../../../../shared/widgets/app_text_field.dart';
 import '../../../../shared/widgets/app_button.dart';
 
 class AdminLoginScreen extends ConsumerStatefulWidget {
-  const AdminLoginScreen({super.key});
+  final String? prefilledIdentifier;
+
+  const AdminLoginScreen({super.key, this.prefilledIdentifier});
 
   @override
   ConsumerState<AdminLoginScreen> createState() => _AdminLoginScreenState();
@@ -20,9 +22,17 @@ class AdminLoginScreen extends ConsumerStatefulWidget {
 
 class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
+  late final TextEditingController _identifierController;
   final _passwordController = TextEditingController();
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _identifierController = TextEditingController(
+      text: widget.prefilledIdentifier,
+    );
+  }
 
   @override
   void dispose() {
@@ -235,6 +245,41 @@ class _AdminLoginScreenState extends ConsumerState<AdminLoginScreen> {
                             onPressed: (isLoading || _isSubmitting)
                                 ? null
                                 : _submit,
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const Row(
+                            children: [
+                              Expanded(child: Divider()),
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                ),
+                                child: Text(
+                                  'veya',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          const Text(
+                            'Henüz hesabınız yok mu?',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          AppButton(
+                            label: 'İşletme Hesabı Oluştur',
+                            isOutlined: true,
+                            onPressed: () {
+                              context.pushNamed(RouteNames.adminRegister);
+                            },
                           ),
                         ],
                       ),

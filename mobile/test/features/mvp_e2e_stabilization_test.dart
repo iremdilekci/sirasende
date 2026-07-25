@@ -22,6 +22,8 @@ import 'package:sirasende_mobile/features/auth/domain/repositories/auth_reposito
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:sirasende_mobile/features/auth/data/models/login_request.dart';
 import 'package:sirasende_mobile/features/auth/data/models/token_response.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_request.dart';
+import 'package:sirasende_mobile/features/auth/data/models/registration_response.dart';
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connection_status.dart';
 import 'package:sirasende_mobile/features/business/domain/models/google_calendar_connect_result.dart';
@@ -216,6 +218,18 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> deleteToken() async {
     token = null;
+  }
+
+  @override
+  Future<RegistrationResponse> register(RegistrationRequest request) async {
+    return const RegistrationResponse(
+      adminId: 'a1',
+      businessId: 'b1',
+      username: 'user',
+      email: 'user@test.com',
+      businessName: 'Biz',
+      message: 'Success',
+    );
   }
 }
 

@@ -52,3 +52,8 @@ class InvalidAppointmentStatusTransitionError(Exception):
 class AppointmentCompletionNotAllowedError(Exception):
     """Raised when trying to complete an appointment before its end time has passed."""
     pass
+
+
+class RegistrationConflictError(Exception):
+    """Raised when username or email is already taken."""
+    pass

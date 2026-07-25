@@ -11,4 +11,6 @@ class RouteNames {
   static const customerAppointmentForm = 'customerAppointmentForm';
   static const customerAppointmentSuccess = 'customerAppointmentSuccess';
   static const googleCalendarCallback = 'googleCalendarCallback';
+  static const adminRegister = 'adminRegister';
+  static const adminRegisterSuccess = 'adminRegisterSuccess';
 }

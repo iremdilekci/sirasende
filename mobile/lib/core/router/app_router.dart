@@ -16,6 +16,8 @@ import 'package:sirasende_mobile/features/appointment/presentation/screens/appoi
 import 'package:sirasende_mobile/features/auth/domain/models/admin_user.dart';
 import 'package:sirasende_mobile/features/auth/presentation/providers/auth_providers.dart';
 import 'package:sirasende_mobile/features/admin/presentation/screens/google_calendar_callback_screen.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/admin_registration_screen.dart';
+import 'package:sirasende_mobile/features/admin/presentation/screens/registration_success_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final listenable = ValueNotifier<AsyncValue<AdminUser?>>(
@@ -105,7 +107,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'admin/login',
             name: RouteNames.adminLogin,
-            builder: (context, state) => const AdminLoginScreen(),
+            builder: (context, state) {
+              final extra = state.extra;
+              final prefilledIdentifier = extra is String ? extra : null;
+              return AdminLoginScreen(prefilledIdentifier: prefilledIdentifier);
+            },
+          ),
+          GoRoute(
+            path: 'admin/register',
+            name: RouteNames.adminRegister,
+            builder: (context, state) => const AdminRegistrationScreen(),
+          ),
+          GoRoute(
+            path: 'admin/register/success',
+            name: RouteNames.adminRegisterSuccess,
+            builder: (context, state) {
+              final extra = state.extra;
+              final prefilledIdentifier = extra is String ? extra : null;
+              return RegistrationSuccessScreen(
+                prefilledIdentifier: prefilledIdentifier,
+              );
+            },
           ),
         ],
       ),
