@@ -1,239 +1,420 @@
+<div align="center">
+
 # 🚀 SıraSende
 
-SıraSende, kuaför, berber, güzellik merkezi ve benzeri işletmeler için geliştirilen modern bir çevrim içi randevu yönetim platformudur.
+### Modern Appointment & Queue Management Platform
 
-Proje; FastAPI, PostgreSQL ve Flutter tabanlı, ölçeklenebilir bir mimariyle geliştirilmektedir.
+A mobile-first appointment and queue management system developed with **Flutter** and **FastAPI**.
 
-> **Project Status:** 🚧 Active Development (Sprint 1 Completed)
+<img src="mobile/assets/images/sirasende.png" width="180"/>
+
+![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-009688?logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791?logo=postgresql)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker)
+![Riverpod](https://img.shields.io/badge/Riverpod-State%20Management-5C6BC0)
+![License](https://img.shields.io/badge/Status-Active-success)
+
+</div>
+
+---
+
+# 📖 About
+
+**SıraSende** is a mobile-first appointment management platform developed for small businesses such as beauty salons, barbers, clinics and similar service providers.
+
+Customers can easily browse businesses, view available appointment slots and create appointments, while business owners manage appointments through a dedicated admin panel.
+
+The system has been designed using **Clean Architecture**, secure authentication and modern software engineering practices.
 
 ---
 
 # ✨ Features
 
-## Sprint 1
+## 👤 Customer
 
-- ✅ FastAPI Backend
-- ✅ PostgreSQL Integration
-- ✅ SQLAlchemy 2.x Async ORM
-- ✅ Alembic Migration System
-- ✅ Docker Development Environment
-- ✅ Health Check Endpoints
-- ✅ Business Listing API
-- ✅ Business Detail API
-- ✅ Dynamic Slot Generation
-- ✅ Slot Availability API
-- ✅ Appointment Creation API
-- ✅ Race Condition Protection
-- ✅ PostgreSQL Partial Unique Index
-- ✅ OpenAPI Documentation
-- ✅ Unit & Integration Test Suite
+- Browse registered businesses
+- View business details
+- View working hours
+- Automatic available slot generation
+- Book appointments
+- Conflict-safe appointment booking
+- Appointment validation
+- Responsive mobile interface
 
 ---
 
-# 🏗 Architecture
+## 🏪 Merchant
+
+- Merchant registration
+- Secure authentication (JWT)
+- Profile management
+- Business information editing
+- Working hours management
+- Appointment management
+- Dashboard statistics
+- Appointment status updates
+- Google Calendar integration
+
+---
+
+## 📅 Google Calendar Integration
+
+- OAuth2 authentication
+- Connect / Disconnect calendar
+- Automatic calendar event creation
+- Duplicate event prevention
+- Safe callback handling
+- Deep Link support
+
+---
+
+# 🏗️ Architecture
+
+The project follows **Clean Architecture** principles.
 
 ```
-Flutter Mobile
-        │
-        ▼
-FastAPI REST API
-        │
-        ▼
- Service Layer
-        │
-        ▼
- Repository Layer
-        │
-        ▼
- PostgreSQL
+Presentation
+      │
+      ▼
+Application / Providers
+      │
+      ▼
+Repository
+      │
+      ▼
+Remote Data Source
+      │
+      ▼
+FastAPI Backend
+      │
+      ▼
+PostgreSQL
+```
+
+Backend also follows a layered architecture:
+
+```
+API
+│
+├── Services
+├── Repositories
+├── Schemas
+├── Models
+├── Core
+└── Database
 ```
 
 ---
 
 # 🛠 Tech Stack
 
-### Backend
+## Mobile
 
-- Python 3.13
+- Flutter
+- Dart
+- Riverpod
+- GoRouter
+- Dio
+
+## Backend
+
 - FastAPI
-- SQLAlchemy 2.x
-- asyncpg
-- Alembic
+- SQLAlchemy Async
 - PostgreSQL
+- Alembic
 - Pydantic v2
+- JWT Authentication
 
-### Infrastructure
+## DevOps
 
 - Docker
 - Docker Compose
 
-### Testing
+## Testing
+
+### Backend
 
 - Pytest
-- HTTPX
-- AsyncIO
 
-### Mobile (Planned)
+### Mobile
 
-- Flutter
-
----
-
-# 📂 Project Structure
-
-```
-backend/
-│
-├── app/
-│   ├── api/
-│   ├── core/
-│   ├── models/
-│   ├── repositories/
-│   ├── schemas/
-│   ├── services/
-│   └── scripts/
-│
-├── alembic/
-├── tests/
-│
-docs/
-```
+- Flutter Test
+- Widget Tests
+- Provider Tests
 
 ---
 
-# 📊 Sprint Progress
+# 🔒 Authentication
 
-| Sprint | Status |
-|----------|--------|
-| Sprint 1 | ✅ Completed |
-| Sprint 2 | 🔄 Planned |
-| Sprint 3 | ⏳ Planned |
-| Sprint 4 | ⏳ Planned |
+- JWT Access Token
+- Secure Password Hashing
+- Protected Admin Endpoints
+- Public Customer Endpoints
 
 ---
 
-# 🧪 Test Status
+# 📊 Dashboard
 
-Current Result
+Merchant dashboard provides live statistics:
 
-```
-124 Passed
-0 Failed
-0 Skipped
-```
+- Total Appointments
+- Pending
+- Confirmed
+- Completed
+- Cancelled
 
-Test Categories
+Dashboard updates automatically after:
 
-- Unit Tests
-- Integration Tests
-- PostgreSQL Tests
-- HTTP Endpoint Tests
-- Concurrency Tests
-
----
-
-# 🔐 Concurrency Protection
-
-SıraSende aynı zaman dilimine birden fazla randevu oluşturulmasını PostgreSQL Partial Unique Index kullanarak engeller.
-
-```
-pending
-confirmed
-```
-
-durumundaki kayıtlar aynı slotu paylaşamaz.
-
-Race condition senaryoları gerçek PostgreSQL üzerinde test edilmiştir.
+- New booking
+- Confirmation
+- Cancellation
+- Completion
 
 ---
 
-# 📖 API
+# 📱 Screens
 
-### Business
-
-```
-GET /api/v1/businesses
-```
-
-```
-GET /api/v1/businesses/{slug}
-```
-
-### Slots
-
-```
-GET /api/v1/businesses/{slug}/slots
-```
-
-### Appointments
-
-```
-POST /api/v1/businesses/{slug}/appointments
-```
-
-OpenAPI
-
-```
-http://localhost:8000/docs
-```
+- Role Selection
+- Customer Home
+- Business Detail
+- Appointment Form
+- Appointment Success
+- Merchant Login
+- Merchant Registration
+- Merchant Dashboard
+- Appointments
+- Business Profile
+- Google Calendar
 
 ---
 
-# 🚀 Local Development
+# ⚙️ Installation
+
+## Clone
 
 ```bash
-git clone https://github.com/iremdilekci/sirasende.git
+git clone https://github.com/yourusername/sirasende.git
 
 cd sirasende
-
-docker compose up -d
-
-cd backend
-
-alembic upgrade head
-
-python -m app.scripts.seed
 ```
 
-Run Tests
+---
+
+## Backend
+
+```bash
+cd backend
+
+python -m venv .venv
+
+source .venv/bin/activate
+```
+
+Windows
+
+```powershell
+.venv\Scripts\activate
+```
+
+Install packages
+
+```bash
+pip install -r requirements.txt
+```
+
+Run database
+
+```bash
+docker compose up -d
+```
+
+Run migrations
+
+```bash
+alembic upgrade head
+```
+
+Start API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+---
+
+## Mobile
+
+```bash
+cd mobile
+
+flutter pub get
+
+flutter run
+```
+
+---
+
+# 🧪 Testing
+
+Backend
 
 ```bash
 pytest
 ```
 
+Flutter
+
+```bash
+flutter test
+```
+
+Static Analysis
+
+```bash
+flutter analyze
+```
+
+Build APK
+
+```bash
+flutter build apk --debug
+```
+
 ---
 
-# 📅 Roadmap
+# 📁 Project Structure
 
-## Sprint 2
+```
+SıraSende
+│
+├── backend
+│   ├── app
+│   ├── alembic
+│   ├── tests
+│   └── Docker
+│
+├── mobile
+│   ├── lib
+│   ├── test
+│   ├── assets
+│   └── android
+│
+└── docs
+```
 
-- JWT Authentication
-- Authorization
+---
+
+# 🚦 API
+
+Public
+
+```
+GET    /businesses
+
+GET    /businesses/{slug}
+
+GET    /businesses/{slug}/slots
+
+POST   /businesses/{slug}/appointments
+```
+
+Admin
+
+```
+POST   /auth/login
+
+POST   /auth/register
+
+GET    /auth/me
+
+GET    /admin/business
+
+PUT    /admin/business
+
+GET    /admin/appointments
+
+PATCH  /admin/appointments/{id}
+
+GET    /admin/appointments/summary
+
+POST   /admin/google-calendar/connect
+
+DELETE /admin/google-calendar/disconnect
+```
+
+---
+
+# 🔍 Quality Assurance
+
+✔ Clean Architecture
+
+✔ Responsive UI
+
+✔ JWT Authentication
+
+✔ Google Calendar OAuth
+
+✔ Provider State Management
+
+✔ Repository Pattern
+
+✔ Async Database
+
+✔ Dockerized Backend
+
+✔ Regression Tested
+
+---
+
+# 📈 Testing Status
+
+Backend
+
+```
+331 Passed
+```
+
+Flutter
+
+```
+264 Passed
+```
+
+---
+
+# 🚀 Future Improvements
+
+- Push Notifications
+- Email Notifications
+- Multi-branch Businesses
+- Employee Management
+- Online Payments
+- Appointment Reminders
 - Customer Accounts
-- Admin APIs
-
-## Sprint 3
-
-- Flutter Mobile App
-- Booking Flow
-- Business Dashboard
-
-## Sprint 4
-
-- Notifications
+- Web Dashboard
 - Analytics
-- Reporting
 
 ---
 
-# 👩💻 Author
+# 👨‍💻 Development
 
-**İrem Dilekçi**
+This project was developed as a **Software Engineering Internship Project** following a mobile-first approach.
 
-Software Engineering Student
+Main development principles:
+
+- Clean Architecture
+- SOLID Principles
+- Repository Pattern
+- Test-Driven Validation
+- Markdown-Driven Development
+- Secure Authentication
+- Maintainable Codebase
 
 ---
 
-# 📄 License
+<div align="center">
 
-This project is developed for educational and portfolio purposes.
+Made with ❤️ using Flutter & FastAPI
+
+</div>
